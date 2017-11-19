@@ -2,10 +2,10 @@ use std::fs;
 use std::io::prelude::*;
 use std::io::Read;
 use std::fs::OpenOptions;
-use std::default::Default;
 use std::os::unix::fs::OpenOptionsExt;
 fn main() {
     let dirs: [String;2] = [String::from("/home/nicohman/steam_games/steamapps/steamapps"), String::from("/games/steam/steamapps")];
+    let dir = "/home/nicohman/.config/eidolon/games";
     for x in &dirs {
    // println!("{}",x.to_owned()+"/common");
     let entries = fs::read_dir(x.to_owned()+"/common").expect("cant read");
@@ -38,15 +38,14 @@ fn main() {
             }
         }
         //println!("{}",procname);
-        let dir = String::from("/home/nicohman/test_games");
-        let res = fs::create_dir(dir+"/"+&procname);
+        let res = fs::create_dir(String::from(dir)+"/"+&procname);
         if res.is_ok() {
             //println!("Made shorcut for {}", &results.1);
             let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .mode(0o770)
-                .open(String::from("/home/nicohman/test_games/")+&procname+"/start")
+                .open(String::from(dir)+"/"+&procname+"/start")
                 .unwrap();
             file.write_all((String::from("#!/bin/bash\nsteam 'steam://rungameid/")+&results.0+"'").as_bytes());
         } else {
