@@ -1,43 +1,63 @@
-use std::process::Command;
 use std::fs;
+use std::io::prelude::*;
 use std::io::Read;
 use std::fs::OpenOptions;
+use std::default::Default;
 use std::os::unix::fs::OpenOptionsExt;
 fn main() {
-    let results = search_games(String::from("Oxenfree"));
-    println!("{}{}{}", results.0, results.1, results.2);
-    let entries = fs::read_dir("/home/nicohman/steam_games/steamapps/steamapps/common").expect("cant read");
+    let dirs: [String;2] = [String::from("/home/nicohman/steam_games/steamapps/steamapps"), String::from("/games/steam/steamapps")];
+    for x in &dirs {
+   // println!("{}",x.to_owned()+"/common");
+    let entries = fs::read_dir(x.to_owned()+"/common").expect("cant read");
     for entry in entries {
-        let entry:String = String::from(entry.expect("unable to get entry").path().into_os_string().into_string().expect("turn to string").split("/").collect::<Vec<&str>>()[7]);
-        //println!("{}",entry);
-        let results = search_games(entry);
-        let procname:String = results.1.chars().map(|x| match x {
+        //println!("{:?}",entry);
+        let base = entry.expect("unable to get entry").path().into_os_string().into_string().expect("turn to string");
+        let entry_format = base.split("/").collect::<Vec<&str>>();
+        let total = entry_format.len() - 1;
+        let entry:String = String::from(entry_format[total]);
+       // println!("{}",entry);
+        let results = search_games(entry, x.to_owned());
+        if results.1 == "name" {
+        } else {
+        let procname:String = String::from(results.1.chars().map(|x| match x {
             '-' => '_',
             ' ' => '_',
-            ',' => '\0',
-            ':' => '\0',
-            '™' => '\0',
-            '\'' => '\0',
             _ => x}
-        ).collect::<String>().to_lowercase();
-        println!("{}",procname);
+        ).collect::<String>().to_lowercase().trim());
+        let chars = procname.chars();
+        let mut procname = String::new();
+        for char in chars {
+            if char == '\'' {
+            
+            } else if char == '™'{
+            
+            } else if char == ':'{
+            
+            } else {
+                procname.push(char);
+            }
+        }
+        //println!("{}",procname);
         let dir = String::from("/home/nicohman/test_games");
         let res = fs::create_dir(dir+"/"+&procname);
         if res.is_ok() {
-            println!("Made dir");
+            //println!("Made shorcut for {}", &results.1);
             let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .mode(0o770)
                 .open(String::from("/home/nicohman/test_games/")+&procname+"/start")
                 .unwrap();
+            file.write_all((String::from("#!/bin/bash\nsteam 'steam://rungameid/")+&results.0+"'").as_bytes());
         } else {
-            println!("{}",String::from("A shortcut has already been made for ") + &procname);
+            println!("{}",res.err().unwrap());
+            println!("{}",String::from("A shortcut has already been made for ") + &results.1 + ":"+&procname);
         }
+    }}
     }
 }
-fn search_games(rawname: String) -> (String, String, String) {
-    let entries = fs::read_dir("/home/nicohman/steam_games/steamapps/steamapps").expect("cant read");
+fn search_games(rawname: String, steamdir:String) -> (String, String, String) {
+    let entries = fs::read_dir(steamdir).expect("cant read");
     for entry in entries {
         let entry = entry.expect("unable to get entry").path();
         let new_entry = entry.into_os_string().into_string().expect("turn to string");
