@@ -47,10 +47,10 @@ fn main() {
                 .mode(0o770)
                 .open(String::from(dir)+"/"+&procname+"/start")
                 .unwrap();
-            file.write_all((String::from("#!/bin/bash\nsteam 'steam://rungameid/")+&results.0+"'").as_bytes());
+            file.write_all((String::from("#!/bin/bash\nsteam 'steam://rungameid/")+&results.0+"'").as_bytes()).expect("didn't write");
         } else {
-            println!("{}",res.err().unwrap());
-            println!("{}",String::from("A shortcut has already been made for ") + &results.1 + ":"+&procname);
+            //println!("{}",res.err().unwrap());
+            println!("{}",String::from("A shortcut has already been made for ") + &results.1);
         }
     }}
     }
