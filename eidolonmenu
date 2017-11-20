@@ -1,8 +1,8 @@
 #!/bin/bash
 ls  --format=single-column ~/.config/eidolon/games | tr -d /  > /tmp/config_games
-ls  --format=single-column ~/Games | tr -d / >> /tmp/config_games
+#ls  --format=single-column ~/Games | tr -d / >> /tmp/config_games
 res=$(rofi -theme sidebar -p "> " -dmenu < /tmp/config_games)
 ~/.config/eidolon/games/$res/start
-cd ~/Games/$res
-./start
+#cd ~/Games/$res
+#./start
 
