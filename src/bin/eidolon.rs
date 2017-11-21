@@ -3,7 +3,50 @@ use std::io::prelude::*;
 use std::io::Read;
 use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
+use std::env;
 fn main() {
+	interpet_args();
+}
+fn interpet_args() {
+    let args: Vec<String> = env::args().collect();
+    let command = &args[1];
+    match command.as_ref() {
+        "update" => update_steam(),
+        "add" => add_game(&args[2], &args[3]),
+        _ => println!("Unknown command"),
+    }
+}
+fn add_game (name:&str, exe: &str) {
+    let mut path = env::current_dir().expect("hi");
+    path.push(exe);
+    let name = create_procname(name);
+    let entries = fs::read_dir("/home/nicohman/.config/eidolon/games").expect("cant read");
+    let mut can_be_used = true;
+    for entry in entries {
+        let base = entry.expect("unable to get entry").path().into_os_string().into_string().expect("turn to string");
+        let entry_format = base.split("/").collect::<Vec<&str>>();
+        let total = entry_format.len() - 1;
+        let entry:String = String::from(entry_format[total]);
+        if entry == name {
+            println!("Game already registered with that name. Pick another");
+            can_be_used = false;
+        }
+    }
+    if can_be_used == true {
+        println!("Creating shortcut for {:?} with a name of {}", path, name);
+        let res = fs::create_dir(String::from("/home/nicohman/.config/eidolon/games/")+&name);
+        if res.is_ok() {
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .mode(0o770)
+                .open(String::from("/home/nicohman/.config/eidolon/games/")+&name+"/start")
+                .unwrap();
+            file.write_all(String::from(String::from("#!/bin/bash\n")+&(path.into_os_string().into_string().expect("cant convert"))).as_bytes()).expect("couldnt write");
+        }
+    }
+}
+fn update_steam() {
     let dirs: [String;2] = [String::from("/home/nicohman/steam_games/steamapps/steamapps"), String::from("/games/steam/steamapps")];
     let dir = "/home/nicohman/.config/eidolon/games";
     for x in &dirs {
@@ -37,6 +80,7 @@ fn main() {
         }
     }}
     }
+
 }
 fn create_procname(rawname:&str) -> (String) {
             let procname:String = String::from(String::from(rawname).chars().map(|x| match x {
