@@ -5,6 +5,7 @@ use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
 use std::env;
 use std::process::Command;
+use std::fs::DirEntry;
 fn main() {
     interpet_args();
 }
@@ -19,10 +20,23 @@ fn interpet_args() {
         "help" => print_help(),
         "menu" => show_menu(),
         "import" => import(&args[2]),
+        "imports" => imports(&args[2]),
         _ => println!("Unknown command. eidolon help for commands."),
     }
 }
+fn imports(dir: &str) {
+    //Iterates through directory and imports each child directory
+    let entries = fs::read_dir(&dir).expect("Can't read in folder of games");
+    println!("Reading in directory: {}", &dir);
+    for entry in entries {
+        let entry = proc_path(entry.unwrap());
+        println!("Attempting import on {}", &entry);
+        import(&entry);
+        println!("Finished attempted import on {}", &entry);
+    }
+}
 fn import(dir: &str) {
+    //Scans a directory for common game formats and adds them.
     let mut path = env::current_dir().unwrap();
     let entry_format = &dir.split("/").collect::<Vec<&str>>();
     let real_dir: String = String::from(entry_format[entry_format.len() - 1]);
@@ -32,15 +46,8 @@ fn import(dir: &str) {
     let entries = fs::read_dir(&path).expect("Can't read in game folder");
     let mut found_game = String::new();
     for entry in entries {
-        let base = entry
-            .unwrap()
-            .path()
-            .into_os_string()
-            .into_string()
-            .unwrap();
-        let entry_format = base.split("/").collect::<Vec<&str>>();
-        let total = entry_format.len() - 1;
-        let entry: String = String::from(entry_format[total]);
+        let entry = proc_path(entry.unwrap());
+
         let mut found = true;
         if entry.find(".x86_64").is_some() {
             println!("Found a unity exe. Assuming it is game");
@@ -82,6 +89,7 @@ fn print_help() {
     println!("rm [name] : removes game from registry");
     println!("menu : shows game menu");
     println!("import [dir] : attempts to import in game directory just from name of location.");
+    println!("imports [dir] : imports in all game directories within given directory")
     println!("help : show this screen");
 }
 fn rm_game(name: &str) {
@@ -107,15 +115,8 @@ fn add_game(name: &str, exe: &str) {
         .expect("Can't read in games");
     let mut can_be_used = true;
     for entry in entries {
-        let base = entry
-            .unwrap()
-            .path()
-            .into_os_string()
-            .into_string()
-            .unwrap();
-        let entry_format = base.split("/").collect::<Vec<&str>>();
-        let total = entry_format.len() - 1;
-        let entry: String = String::from(entry_format[total]);
+        let entry = proc_path(entry.unwrap());
+
         //Checks to ensure that game is not already registered with selected name
         if entry == name {
             println!("Game already registered with that name. Pick another");
@@ -155,15 +156,8 @@ fn update_steam() {
     for x in &dirs {
         let entries = fs::read_dir(x.to_owned() + "/common").expect("Can't read in games");
         for entry in entries {
-            let base = entry
-                .expect("unable to get entry")
-                .path()
-                .into_os_string()
-                .into_string()
-                .unwrap();
-            let entry_format = base.split("/").collect::<Vec<&str>>();
-            let total = entry_format.len() - 1;
-            let entry: String = String::from(entry_format[total]);
+            let entry = proc_path(entry.unwrap());
+
             //Calls search games to get appid and proper name to make the script
             let results = search_games(entry, x.to_owned());
             if results.1 == "name" {
@@ -262,4 +256,11 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
         String::from("name"),
         String::from("outname"),
     );
+}
+fn proc_path(path: DirEntry) -> String {
+    //Converts DirEntry into a fully processed file/directory name
+    let base = path.path().into_os_string().into_string().unwrap();
+    let entry_format = base.split("/").collect::<Vec<&str>>();
+    let entry: String = String::from(entry_format[entry_format.len() - 1]);
+    return entry;
 }
