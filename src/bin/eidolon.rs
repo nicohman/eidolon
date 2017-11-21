@@ -6,6 +6,8 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::env;
 use std::process::Command;
 use std::fs::DirEntry;
+use std::io;
+const MENU_COMMAND:&str =  "rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu";
 fn main() {
     interpet_args();
 }
@@ -76,11 +78,19 @@ fn import(dir: &str) {
 }
 fn show_menu() {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
+    let mut entries= fs::read_dir(get_home()+"/.config/eidolon/games").expect("Can't read in games").collect::<Vec<io::Result<DirEntry>>>().into_iter().map(|entry| entry.unwrap().file_name().into_string().unwrap()).collect::<Vec<String>>();
+    entries.sort_by(|a, b| a.cmp(&b));
+    let mut game_list = String::new();
+    for entry in entries {
+        //let entry = proc_path(entry);
+        game_list.push_str(&entry);
+        game_list.push_str("\n");
+    }
     Command::new("sh")
         .arg("-c")
-        .arg("~/.config/eidolon/games/$(ls  --format=single-column ~/.config/eidolon/games | tr -d / | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu)/start")
+        .arg(String::from("echo '")+&game_list+"' | " + MENU_COMMAND)
         .spawn()
-        .expect("Failed to run rofi.");
+        .expect("Failed to run menu.");
 }
 fn print_help() {
     println!("Commands:");
