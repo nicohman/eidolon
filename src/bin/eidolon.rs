@@ -95,8 +95,8 @@ fn print_help() {
 fn rm_game(name: &str) {
     //Removes folder of named game
     let res = fs::remove_dir_all(
-        String::from("/home/nicohman/.config/eidolon/games/") +
-            create_procname(name).as_ref(),
+        String::from(get_home() + "/.config/eidolon/games/" +
+            create_procname(name).as_ref())
     );
     if res.is_ok() {
         println!("Game removed!");
@@ -111,7 +111,7 @@ fn add_game(name: &str, exe: &str) {
     path.push(exe);
     //Adds pwd to exe path
     let name = create_procname(name);
-    let entries = fs::read_dir("/home/nicohman/.config/eidolon/games")
+    let entries = fs::read_dir( get_home() + "/.config/eidolon/games")
         .expect("Can't read in games");
     let mut can_be_used = true;
     for entry in entries {
@@ -126,7 +126,7 @@ fn add_game(name: &str, exe: &str) {
     if can_be_used == true {
         println!("Creating shortcut for {:?} with a name of {}", path, name);
         let res = fs::create_dir(
-            String::from("/home/nicohman/.config/eidolon/games/") + &name,
+            String::from( String::from(get_home() + "/.config/eidolon/games/") + &name)
         );
         if res.is_ok() {
             //Writes executable file in correct folder with simple bash script to run the linked executable
@@ -135,7 +135,7 @@ fn add_game(name: &str, exe: &str) {
                 .write(true)
                 .mode(0o770)
                 .open(
-                    String::from("/home/nicohman/.config/eidolon/games/") + &name + "/start",
+                    String::from( get_home() + "/.config/eidolon/games/") + &name + "/start",
                 )
                 .unwrap();
             file.write_all(
@@ -149,10 +149,9 @@ fn add_game(name: &str, exe: &str) {
 fn update_steam() {
     //Iterates through steam directories for installed steam games and creates registrations for all
     let dirs: [String; 2] = [
-        String::from("/home/nicohman/steam_games/steamapps/steamapps"),
+        String::from(get_home()+"/steam_games/steamapps/steamapps"),
         String::from("/games/steam/steamapps"),
     ];
-    let dir = "/home/nicohman/.config/eidolon/games";
     for x in &dirs {
         let entries = fs::read_dir(x.to_owned() + "/common").expect("Can't read in games");
         for entry in entries {
@@ -164,14 +163,14 @@ fn update_steam() {
                 println!("Could not find game as refrenced by .vdf");
             } else {
                 let procname = create_procname(&results.1);
-                let res = fs::create_dir(String::from(dir) + "/" + &procname);
+                let res = fs::create_dir(get_home()+ "/.config/eidolon/games" + "/" + &procname);
                 if res.is_ok() {
                     println!("Made shortcut for {}", &results.1);
                     let mut file = OpenOptions::new()
                         .create(true)
                         .write(true)
                         .mode(0o770)
-                        .open(String::from(dir) + "/" + &procname + "/start")
+                        .open(get_home() + "/.config/eidolon/games" + "/" + &procname + "/start")
                         .unwrap();
                     file.write_all(
                         (String::from("#!/bin/bash\nsteam 'steam://rungameid/") + &results.0 + "'")
@@ -221,7 +220,7 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
         let entry = entry.unwrap().path();
         let new_entry = entry.into_os_string().into_string().unwrap();
         if new_entry.find("appmanifest").is_some() {
-            let mut f = fs::File::open(&new_entry).expect("Could open appmanifest");
+            let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
             let mut contents = String::new();
             f.read_to_string(&mut contents).expect(
                 "Could not read appmanifest",
@@ -261,4 +260,7 @@ fn proc_path(path: DirEntry) -> String {
     //Converts DirEntry into a fully processed file/directory name
     let base = path.file_name().into_string().unwrap();
     return base;
+}
+fn get_home() -> String {
+    return String::from(env::home_dir().unwrap().to_str().unwrap());
 }
