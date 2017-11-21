@@ -4,10 +4,11 @@ use std::io::Read;
 use std::fs::OpenOptions;
 use std::os::unix::fs::OpenOptionsExt;
 use std::env;
+use std::process::Command;
 fn main() {
 	interpet_args();
 }
-fn interpet_args() {
+fn interpet_args () {
     let args: Vec<String> = env::args().collect();
     let command = &args[1];
     match command.as_ref() {
@@ -15,10 +16,18 @@ fn interpet_args() {
         "add" => add_game(&args[2], &args[3]),
         "rm" => rm_game(&args[2]),
         "help" => print_help(),
+        "menu" => show_menu(),
         _ => println!("Unknown command"),
     }
 }
-fn print_help {
+fn show_menu () {
+    Command::new("sh")
+        .arg("-c")
+        .arg("~/.config/eidolon/games/$(ls  --format=single-column ~/.config/eidolon/games | tr -d / | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu)/start")
+        .spawn()
+        .expect("failed");
+}
+fn print_help () {
     println!("Commands:");
     println!("update : updates registry with installed steam games");
     println!("add [name] [file] : adds game to registry");
