@@ -29,3 +29,11 @@ imports [dir] : imports in all game directories within given directory
 
 help : show this screen 
 ```
+
+## Todo
+
++ Convert procname to use regex
++ Add in configuration file support for things like menu, steam directorys, etc
++ Add in native wine support, including specific wine versions
++ Add in support for importation of wine games from lutris, preferably without actually using lutris launch links
++ Please suggest any other features you want as an issue!
