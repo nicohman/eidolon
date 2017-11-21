@@ -14,8 +14,17 @@ fn interpet_args() {
         "update" => update_steam(),
         "add" => add_game(&args[2], &args[3]),
         "rm" => rm_game(&args[2]),
+        "help" => print_help(),
         _ => println!("Unknown command"),
     }
+}
+fn print_help {
+    println!("Commands:");
+    println!("update : updates registry with installed steam games");
+    println!("add [name] [file] : adds game to registry");
+    println!("rm [name] : removes game from registry");
+    println!("menu : shows game menu");
+    println!("help : show this screen");
 }
 fn rm_game (name:&str) {
     let res = fs::remove_dir_all(String::from("/home/nicohman/.config/eidolon/games/")+create_procname(name).as_ref());
