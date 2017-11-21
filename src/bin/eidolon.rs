@@ -13,7 +13,16 @@ fn interpet_args() {
     match command.as_ref() {
         "update" => update_steam(),
         "add" => add_game(&args[2], &args[3]),
+        "rm" => rm_game(&args[2]),
         _ => println!("Unknown command"),
+    }
+}
+fn rm_game (name:&str) {
+    let res = fs::remove_dir_all(String::from("/home/nicohman/.config/eidolon/games/")+create_procname(name).as_ref());
+    if res.is_ok() {
+        println!("Game removed!");
+    } else {
+        println!("Game did not exist. So, removed?");
     }
 }
 fn add_game (name:&str, exe: &str) {
@@ -66,7 +75,7 @@ fn update_steam() {
         //println!("{}",procname);
         let res = fs::create_dir(String::from(dir)+"/"+&procname);
         if res.is_ok() {
-            //println!("Made shorcut for {}", &results.1);
+            println!("Made shorcut for {}", &results.1);
             let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
