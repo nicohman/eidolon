@@ -89,7 +89,7 @@ fn print_help() {
     println!("rm [name] : removes game from registry");
     println!("menu : shows game menu");
     println!("import [dir] : attempts to import in game directory just from name of location.");
-    println!("imports [dir] : imports in all game directories within given directory")
+    println!("imports [dir] : imports in all game directories within given directory");
     println!("help : show this screen");
 }
 fn rm_game(name: &str) {
@@ -259,8 +259,6 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
 }
 fn proc_path(path: DirEntry) -> String {
     //Converts DirEntry into a fully processed file/directory name
-    let base = path.path().into_os_string().into_string().unwrap();
-    let entry_format = base.split("/").collect::<Vec<&str>>();
-    let entry: String = String::from(entry_format[entry_format.len() - 1]);
-    return entry;
+    let base = path.file_name().into_string().unwrap();
+    return base;
 }
