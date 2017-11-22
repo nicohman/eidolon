@@ -7,7 +7,7 @@ use std::env;
 use std::process::Command;
 use std::fs::DirEntry;
 use std::io;
-const MENU_COMMAND:&str =  "rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu";
+const MENU_COMMAND: &str = "rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu";
 fn main() {
     interpet_args();
 }
@@ -15,6 +15,9 @@ fn interpet_args() {
     //Matches arguments to their relevant functions
     let args: Vec<String> = env::args().collect();
     let command = &args[1];
+    if fs::metadata(get_home()+"/.config/eidolon").is_err() {
+        init();
+    }
     match command.as_ref() {
         "update" => update_steam(),
         "add" => add_game(&args[2], &args[3]),
@@ -25,6 +28,22 @@ fn interpet_args() {
         "imports" => imports(&args[2]),
         _ => println!("Unknown command. eidolon help for commands."),
     }
+}
+fn init() {
+    fs::create_dir(get_home() + "/.config/eidolon").unwrap();
+    fs::create_dir(get_home() + "/.config/eidolon/games").unwrap();
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        //.mode(0o770)
+        .open(
+            get_home() + "/.config/eidolon/config"
+        )
+        .unwrap();
+    file.write_all(
+        (String::from("steam_dirs: | $HOME/.local/share/steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |")).as_bytes(),
+    ).unwrap();
+    println!("Correctly initialized base config");
 }
 fn imports(dir: &str) {
     //Iterates through directory and imports each child directory
@@ -78,7 +97,12 @@ fn import(dir: &str) {
 }
 fn show_menu() {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
-    let mut entries= fs::read_dir(get_home()+"/.config/eidolon/games").expect("Can't read in games").collect::<Vec<io::Result<DirEntry>>>().into_iter().map(|entry| entry.unwrap().file_name().into_string().unwrap()).collect::<Vec<String>>();
+    let mut entries = fs::read_dir(get_home() + "/.config/eidolon/games")
+        .expect("Can't read in games")
+        .collect::<Vec<io::Result<DirEntry>>>()
+        .into_iter()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .collect::<Vec<String>>();
     entries.sort_by(|a, b| a.cmp(&b));
     let mut game_list = String::new();
     for entry in entries {
@@ -88,7 +112,7 @@ fn show_menu() {
     }
     Command::new("sh")
         .arg("-c")
-        .arg(String::from("echo '")+&game_list+"' | " + MENU_COMMAND)
+        .arg(String::from("echo '") + &game_list + "' | " + MENU_COMMAND)
         .spawn()
         .expect("Failed to run menu.");
 }
@@ -104,10 +128,10 @@ fn print_help() {
 }
 fn rm_game(name: &str) {
     //Removes folder of named game
-    let res = fs::remove_dir_all(
-        String::from(get_home() + "/.config/eidolon/games/" +
-            create_procname(name).as_ref())
-    );
+    let res = fs::remove_dir_all(String::from(
+        get_home() + "/.config/eidolon/games/" +
+            create_procname(name).as_ref(),
+    ));
     if res.is_ok() {
         println!("Game removed!");
 
@@ -121,8 +145,7 @@ fn add_game(name: &str, exe: &str) {
     path.push(exe);
     //Adds pwd to exe path
     let name = create_procname(name);
-    let entries = fs::read_dir( get_home() + "/.config/eidolon/games")
-        .expect("Can't read in games");
+    let entries = fs::read_dir(get_home() + "/.config/eidolon/games").expect("Can't read in games");
     let mut can_be_used = true;
     for entry in entries {
         let entry = proc_path(entry.unwrap());
@@ -135,9 +158,9 @@ fn add_game(name: &str, exe: &str) {
     }
     if can_be_used == true {
         println!("Creating shortcut for {:?} with a name of {}", path, name);
-        let res = fs::create_dir(
-            String::from( String::from(get_home() + "/.config/eidolon/games/") + &name)
-        );
+        let res = fs::create_dir(String::from(
+            String::from(get_home() + "/.config/eidolon/games/") + &name,
+        ));
         if res.is_ok() {
             //Writes executable file in correct folder with simple bash script to run the linked executable
             let mut file = OpenOptions::new()
@@ -145,7 +168,7 @@ fn add_game(name: &str, exe: &str) {
                 .write(true)
                 .mode(0o770)
                 .open(
-                    String::from( get_home() + "/.config/eidolon/games/") + &name + "/start",
+                    String::from(get_home() + "/.config/eidolon/games/") + &name + "/start",
                 )
                 .unwrap();
             file.write_all(
@@ -159,7 +182,7 @@ fn add_game(name: &str, exe: &str) {
 fn update_steam() {
     //Iterates through steam directories for installed steam games and creates registrations for all
     let dirs: [String; 2] = [
-        String::from(get_home()+"/steam_games/steamapps/steamapps"),
+        String::from(get_home() + "/steam_games/steamapps/steamapps"),
         String::from("/games/steam/steamapps"),
     ];
     for x in &dirs {
@@ -173,14 +196,16 @@ fn update_steam() {
                 println!("Could not find game as refrenced by .vdf");
             } else {
                 let procname = create_procname(&results.1);
-                let res = fs::create_dir(get_home()+ "/.config/eidolon/games" + "/" + &procname);
+                let res = fs::create_dir(get_home() + "/.config/eidolon/games" + "/" + &procname);
                 if res.is_ok() {
                     println!("Made shortcut for {}", &results.1);
                     let mut file = OpenOptions::new()
                         .create(true)
                         .write(true)
                         .mode(0o770)
-                        .open(get_home() + "/.config/eidolon/games" + "/" + &procname + "/start")
+                        .open(
+                            get_home() + "/.config/eidolon/games" + "/" + &procname + "/start",
+                        )
                         .unwrap();
                     file.write_all(
                         (String::from("#!/bin/bash\nsteam 'steam://rungameid/") + &results.0 + "'")
