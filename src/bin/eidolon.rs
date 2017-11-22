@@ -11,38 +11,47 @@ fn main() {
     interpet_args();
 }
 fn interpet_args() {
-    if fs::metadata(get_home()+"/.config/eidolon").is_err() || fs::metadata(get_home()+"/.config/eidolon/config").is_err()  {
+    if fs::metadata(get_home() + "/.config/eidolon").is_err() ||
+        fs::metadata(get_home() + "/.config/eidolon/config").is_err()
+    {
         init();
-    }  else {
-    //Matches arguments to their relevant functions
-    let args: Vec<String> = env::args().collect();
-    let command:&str;
-    if args.len() < 2 {
-        command = "help";
     } else {
-        command = &args[1];
-    }
-    let config = get_config();
-    let menu_command = config.1;
-    let steam_dirs = config.0;
-    match command.as_ref() {
-        "update" => update_steam(steam_dirs),
-        "add" => add_game(&args[2], &args[3]),
-        "rm" => rm_game(&args[2]),
-        "help" => print_help(),
-        "menu" => show_menu(menu_command),
-        "import" => import(&args[2]),
-        "imports" => imports(&args[2]),
-        _ => println!("Unknown command. eidolon help for commands."),
+        //Matches arguments to their relevant functions
+        let args: Vec<String> = env::args().collect();
+        let command: &str;
+        if args.len() < 2 {
+            command = "help";
+        } else {
+            command = &args[1];
+        }
+        let config = get_config();
+        let menu_command = config.1;
+        let steam_dirs = config.0;
+        match command.as_ref() {
+            "update" => update_steam(steam_dirs),
+            "add" => add_game(&args[2], &args[3], false),
+            "rm" => rm_game(&args[2]),
+            "help" => print_help(),
+            "menu" => show_menu(menu_command),
+            "import" => import(&args[2]),
+            "imports" => imports(&args[2]),
+            "wine_add" => add_game(&args[2], &args[3], true),
+            _ => println!("Unknown command. eidolon help for commands."),
+        }
     }
 }
-}
-fn get_config () -> (Vec<String>, String) {
+fn get_config() -> (Vec<String>, String) {
     let mut conf = String::new();
-    fs::File::open(get_home()+"/.config/eidolon/config").expect("Couldn't read config").read_to_string(&mut conf).unwrap();
+    fs::File::open(get_home() + "/.config/eidolon/config")
+        .expect("Couldn't read config")
+        .read_to_string(&mut conf)
+        .unwrap();
     let mut conf = conf.lines();
     let steam_dirs = conf.next().unwrap();
-    let mut steam_base = steam_dirs.split('|').map(|x| String::from(x).replace("$HOME", &get_home())).collect::<Vec<String>>();
+    let mut steam_base = steam_dirs
+        .split('|')
+        .map(|x| String::from(x.trim()).replace("$HOME", &get_home()))
+        .collect::<Vec<String>>();
     let mut steam_vec = steam_base.drain(1..).collect::<Vec<String>>();
     steam_vec.pop();
     let menu_command_base = String::from(conf.next().unwrap());
@@ -55,9 +64,7 @@ fn init() {
     let mut file = OpenOptions::new()
         .create(true)
         .write(true)
-        .open(
-            get_home() + "/.config/eidolon/config"
-        )
+        .open(get_home() + "/.config/eidolon/config")
         .unwrap();
     file.write_all(
         (String::from("steam_dirs: | $HOME/.local/share/steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |")).as_bytes(),
@@ -106,6 +113,7 @@ fn import(dir: &str) {
         add_game(
             &procname,
             &(path.into_os_string().into_string().unwrap() + "/" + &found_game),
+            false,
         );
     } else {
         println!(
@@ -143,6 +151,7 @@ fn print_help() {
     println!("menu : shows game menu");
     println!("import [dir] : attempts to import in game directory just from name of location.");
     println!("imports [dir] : imports in all game directories within given directory");
+    println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
     println!("help : show this screen");
 }
 fn rm_game(name: &str) {
@@ -158,7 +167,7 @@ fn rm_game(name: &str) {
         println!("Game did not exist. So, removed?");
     }
 }
-fn add_game(name: &str, exe: &str) {
+fn add_game(name: &str, exe: &str, wine: bool) {
     //Registers executable file as game with given name
     let mut path = env::current_dir().unwrap();
     path.push(exe);
@@ -190,9 +199,20 @@ fn add_game(name: &str, exe: &str) {
                     String::from(get_home() + "/.config/eidolon/games/") + &name + "/start",
                 )
                 .unwrap();
+            let mut start = String::from("#!/bin/bash\n");
+            if wine {
+                start.push_str("wine ");
+            }
+            //let mut to_write = String::from(
+            //        start + &(path.into_os_string().into_string().unwrap()),
+            //    ).as_bytes();
             file.write_all(
                 String::from(
-                    String::from("#!/bin/bash\n") + &(path.into_os_string().into_string().unwrap()),
+                    start +
+                        &(path.into_os_string().into_string().unwrap().replace(
+                            " ",
+                            "\\ ",
+                        )),
                 ).as_bytes(),
             ).expect("Could not write game registry");
         }
