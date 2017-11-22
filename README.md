@@ -47,7 +47,6 @@ menu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |
 ```
 ## Todo
 
-+ Convert procname to use regex
 + Add in support for importation of wine games from lutris, preferably without actually using lutris launch links
 + Please suggest any other features you want as an issue!
 
