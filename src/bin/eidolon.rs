@@ -7,6 +7,8 @@ use std::env;
 use std::process::Command;
 use std::fs::DirEntry;
 use std::io;
+extern crate regex;
+use regex::Regex;
 fn main() {
     interpet_args();
 }
@@ -260,29 +262,13 @@ fn update_steam(dirs: Vec<String>) {
 }
 fn create_procname(rawname: &str) -> (String) {
     //Formats game name into nice-looking underscored name
-    let procname: String = String::from(
-        String::from(rawname)
-            .chars()
-            .map(|x| match x {
-                '-' => '_',
-                ' ' => '_',
-                _ => x,
-            })
-            .collect::<String>()
-            .to_lowercase()
-            .trim(),
-    );
-    let chars = procname.chars();
-    let mut procname = String::new();
-    for char in chars {
-        if char == '\'' {
-        } else if char == '™' {
-        } else if char == ':' {
-        } else {
-            procname.push(char);
-        }
-    }
-    return procname;
+    let mut basename = String::from(rawname).to_lowercase();
+    basename = String::from(basename.trim());
+    let reg_white = Regex::new(r"-|\s").unwrap();
+    let reg_special = Regex::new(r"'|™|:").unwrap();
+    let white_formatted = reg_white.replace_all(&basename, "_");
+    let total_formatted = reg_special.replace_all(&white_formatted, "");
+    return String::from(total_formatted);
 }
 fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
     //Searches given steam game directory for installed game with a directory name of [rawname]
