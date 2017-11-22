@@ -12,11 +12,16 @@ fn main() {
     interpet_args();
 }
 fn interpet_args() {
-    //Matches arguments to their relevant functions
-    let args: Vec<String> = env::args().collect();
-    let command = &args[1];
     if fs::metadata(get_home()+"/.config/eidolon").is_err() {
         init();
+    }
+    //Matches arguments to their relevant functions
+    let args: Vec<String> = env::args().collect();
+    let command:&str;
+    if args.len() < 2 {
+        command = "help";
+    } else {
+        command = &args[1];
     }
     match command.as_ref() {
         "update" => update_steam(),
