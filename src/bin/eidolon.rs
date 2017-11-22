@@ -142,7 +142,7 @@ fn show_menu(menu_command: String) {
         .arg(String::from("echo '") + &game_list + "' | " + &menu_command)
         .output()
         .expect("Failed to run menu.");
-    Command::new("sh").arg("-c").arg(String::from("~/.config/eidolon/games/")+&String::from_utf8_lossy(&output.stdout)+"/start").spawn().expect("Failed to start game");
+    Command::new("sh").arg("-c").arg(String::from("~/.config/eidolon/games/")+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
 }
 fn print_help() {
     println!("Commands:");
