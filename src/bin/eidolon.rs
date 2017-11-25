@@ -10,11 +10,12 @@ use std::io;
 extern crate regex;
 use regex::Regex;
 fn main() {
-    interpet_args();
+    interpret_args();
 }
-fn interpet_args() {
+fn interpret_args() {
     if fs::metadata(get_home() + "/.config/eidolon").is_err() ||
-        fs::metadata(get_home() + "/.config/eidolon/config").is_err()
+        fs::metadata(get_home() + "/.config/eidolon/config").is_err() ||
+            fs::metadata(get_home() + "/.config/eidolon/games").is_err()
     {
         init();
     } else {
@@ -206,9 +207,6 @@ fn add_game(name: &str, exe: &str, wine: bool) {
             if wine {
                 start.push_str("wine ");
             }
-            //let mut to_write = String::from(
-            //        start + &(path.into_os_string().into_string().unwrap()),
-            //    ).as_bytes();
             file.write_all(
                 String::from(
                     start +
@@ -272,6 +270,9 @@ fn create_procname(rawname: &str) -> (String) {
 }
 fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
     //Searches given steam game directory for installed game with a directory name of [rawname]
+    let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
+    for entry in entries {
+        let entry = entry.unwrap().path();
     let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
     for entry in entries {
         let entry = entry.unwrap().path();
