@@ -270,10 +270,10 @@ fn create_procname(rawname: &str) -> (String) {
 }
 fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
     //Searches given steam game directory for installed game with a directory name of [rawname]
-    let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
+    let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
     for entry in entries {
         let entry = entry.unwrap().path();
-    let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
+    let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
     for entry in entries {
         let entry = entry.unwrap().path();
         let new_entry = entry.into_os_string().into_string().unwrap();
@@ -289,6 +289,8 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
                     contents.find("installdir").unwrap() + 14,
                     contents.find("LastUpdated").unwrap() - 4,
                 );
+                if outname == rawname {
+
                 let appid = contents.slice_unchecked(
                     contents.find("appid").unwrap() + 9,
                     contents.find("Universe").unwrap() - 4,
@@ -297,7 +299,6 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
                     contents.find("name").unwrap() + 8,
                     contents.find("StateFlags").unwrap() - 4,
                 );
-                if outname == rawname {
                     return (
                         String::from(appid),
                         String::from(name),
@@ -306,6 +307,7 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
                 }
             }
         }
+    }
     }
     //Return generic defaults
     return (
