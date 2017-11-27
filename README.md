@@ -34,17 +34,20 @@ help : show this screen
 
 ```
 ## Configuration
-Right now, only two config options exist: menu_command and steam_dirs.
+Right now, only three config options exist: menu_command, prefix_command and steam_dirs.
 
 `menu_command` : The command to be run to display the eidolon menu. Will be given an alphabetical list of names through STDIN, and a name is expected back through STDOUT.
 
 `steam_dirs` : a |-seperated list of steam install directories, with $HOME replacing the home directory.
 
+`prefix_command` : A command that will be run as a prefix to every game command. Good for optirun or steam runtime launching.
 #### Default config file:
 ```
 steam_dirs: |$HOME/.local/share/steam/steamapps|
 
 menu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |
+
+prefix_command: | |
 ```
 ## Todo
 
