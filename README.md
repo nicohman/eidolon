@@ -11,6 +11,7 @@ You'll need [rofi](https://github.com/DaveDavenport/rofi) and [cargo](https://gi
 
 `sudo cp targets/release/eidolon /usr/bin/eidolon`
 
+Alternatively, check [here](https://github.com/nicohman/eidolon/releases) for a possibly out of date binary.
 ## Usage
 `eidolon help` for list of commands:
 ```Commands:
