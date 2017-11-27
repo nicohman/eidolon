@@ -30,12 +30,13 @@ fn interpret_args() {
         let config = get_config();
         let menu_command = config.1;
         let steam_dirs = config.0;
+        let prefix_command = config.2;
         match command.as_ref() {
             "update" => update_steam(steam_dirs),
             "add" => add_game(&args[2], &args[3], false),
             "rm" => rm_game(&args[2]),
             "help" => print_help(),
-            "menu" => show_menu(menu_command),
+            "menu" => show_menu(menu_command, prefix_command),
             "import" => import(&args[2]),
             "imports" => imports(&args[2]),
             "wine_add" => add_game(&args[2], &args[3], true),
@@ -43,7 +44,7 @@ fn interpret_args() {
         }
     }
 }
-fn get_config() -> (Vec<String>, String) {
+fn get_config() -> (Vec<String>, String, String) {
     let mut conf = String::new();
     fs::File::open(get_home() + "/.config/eidolon/config")
         .expect("Couldn't read config")
@@ -58,8 +59,16 @@ fn get_config() -> (Vec<String>, String) {
     let mut steam_vec = steam_base.drain(1..).collect::<Vec<String>>();
     steam_vec.pop();
     let menu_command_base = String::from(conf.next().unwrap());
+    let prefix_command_bool = conf.next();
+    let mut prefix_command:&str;
+    if prefix_command_bool.is_some() {
+        prefix_command = prefix_command_bool.unwrap();
+        prefix_command = prefix_command.split('|').collect::<Vec<&str>>()[1];
+    } else {
+        prefix_command = " "
+    }
     let menu_command = menu_command_base.split('|').collect::<Vec<&str>>()[1];
-    (steam_vec, String::from(menu_command))
+    (steam_vec, String::from(menu_command), String::from(prefix_command))
 }
 fn init() {
     fs::create_dir(get_home() + "/.config/eidolon").unwrap();
@@ -70,7 +79,7 @@ fn init() {
         .open(get_home() + "/.config/eidolon/config")
         .unwrap();
     file.write_all(
-        (String::from("steam_dirs: | $HOME/.local/share/steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |")).as_bytes(),
+        (String::from("steam_dirs: | $HOME/.local/share/steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
     ).unwrap();
     println!("Correctly initialized base config. Please run again to use eidolon.");
 }
@@ -125,7 +134,8 @@ fn import(dir: &str) {
 
     }
 }
-fn show_menu(menu_command: String) {
+fn show_menu(menu_command: String, prefix_command:String) {
+    println!("{}",prefix_command);
     //Creates a list of all installed games, then pipes them to a dmenu rofi
     let mut entries = fs::read_dir(get_home() + "/.config/eidolon/games")
         .expect("Can't read in games")
@@ -145,7 +155,7 @@ fn show_menu(menu_command: String) {
         .arg(String::from("echo '") + &game_list + "' | " + &menu_command)
         .output()
         .expect("Failed to run menu.");
-    Command::new("sh").arg("-c").arg(String::from("~/.config/eidolon/games/")+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
+    Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
 }
 fn print_help() {
     println!("Commands:");
