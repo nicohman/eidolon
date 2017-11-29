@@ -58,6 +58,8 @@ fn get_config() -> (Vec<String>, String, String) {
         .collect::<Vec<String>>();
     let mut steam_vec = steam_base.drain(1..).collect::<Vec<String>>();
     steam_vec.pop();
+    let new_steam_vec = Regex::new(r"\s*steam_dirs *: *\|([^\|]+\|)+").unwrap().captures_iter(steam_dirs).map(|x| x.get(1).unwrap().as_str()).collect::<Vec<&str>>();
+    println!("{:?}",new_steam_vec);
     let menu_command_base = String::from(conf.next().unwrap());
     let prefix_command_bool = conf.next();
     let mut prefix_command:&str;
