@@ -16,33 +16,33 @@ fn interpret_args() {
     if fs::metadata(get_home() + "/.config/eidolon").is_err() ||
         fs::metadata(get_home() + "/.config/eidolon/config").is_err() ||
             fs::metadata(get_home() + "/.config/eidolon/games").is_err()
-    {
-        init();
-    } else {
-        //Matches arguments to their relevant functions
-        let args: Vec<String> = env::args().collect();
-        let command: &str;
-        if args.len() < 2 {
-            command = "help";
-        } else {
-            command = &args[1];
-        }
-        let config = get_config();
-        let menu_command = config.1;
-        let steam_dirs = config.0;
-        let prefix_command = config.2;
-        match command.as_ref() {
-            "update" => update_steam(steam_dirs),
-            "add" => add_game(&args[2], &args[3], false),
-            "rm" => rm_game(&args[2]),
-            "help" => print_help(),
-            "menu" => show_menu(menu_command, prefix_command),
-            "import" => import(&args[2]),
-            "imports" => imports(&args[2]),
-            "wine_add" => add_game(&args[2], &args[3], true),
-            _ => println!("Unknown command. eidolon help for commands."),
-        }
-    }
+            {
+                init();
+            } else {
+                //Matches arguments to their relevant functions
+                let args: Vec<String> = env::args().collect();
+                let command: &str;
+                if args.len() < 2 {
+                    command = "help";
+                } else {
+                    command = &args[1];
+                }
+                let config = get_config();
+                let menu_command = config.1;
+                let steam_dirs = config.0;
+                let prefix_command = config.2;
+                match command.as_ref() {
+                    "update" => update_steam(steam_dirs),
+                    "add" => add_game(&args[2], &args[3], false),
+                    "rm" => rm_game(&args[2]),
+                    "help" => print_help(),
+                    "menu" => show_menu(menu_command, prefix_command),
+                    "import" => import(&args[2]),
+                    "imports" => imports(&args[2]),
+                    "wine_add" => add_game(&args[2], &args[3], true),
+                    _ => println!("Unknown command. eidolon help for commands."),
+                }
+            }
 }
 fn get_config() -> (Vec<String>, String, String) {
     let mut conf = String::new();
@@ -82,7 +82,7 @@ fn init() {
         .unwrap();
     file.write_all(
         (String::from("steam_dirs: | $HOME/.local/share/steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
-    ).unwrap();
+        ).unwrap();
     println!("Correctly initialized base config. Please run again to use eidolon.");
 }
 fn imports(dir: &str) {
@@ -128,11 +128,11 @@ fn import(dir: &str) {
             &procname,
             &(path.into_os_string().into_string().unwrap() + "/" + &found_game),
             false,
-        );
+            );
     } else {
         println!(
             "Could not find recognizable game exe. You will have to manually specify using eidolon add [name] [exe]"
-        );
+            );
 
     }
 }
@@ -152,12 +152,17 @@ fn show_menu(menu_command: String, prefix_command:String) {
         game_list.push_str(&entry);
         game_list.push_str("\n");
     }
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(String::from("echo '") + &game_list + "' | " + &menu_command)
-        .output()
-        .expect("Failed to run menu.");
-    Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
+    if game_list.lines().count() <= 0 {
+        println!("No games added. Either run eidolon update or add games manually.");
+        let fail = Command::new("sh").arg("-c").arg("notify-send").arg(String::from("'No games added. Either run eidolon update or add games manually.'")).output().expect("Couldn't send notification");
+    } else {
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg(String::from("echo '") + &game_list + "' | " + &menu_command)
+            .output()
+            .expect("Failed to run menu.");
+        Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
+    }
 }
 fn print_help() {
     println!("Commands:");
@@ -173,9 +178,9 @@ fn print_help() {
 fn rm_game(name: &str) {
     //Removes folder of named game
     let res = fs::remove_dir_all(String::from(
-        get_home() + "/.config/eidolon/games/" +
+            get_home() + "/.config/eidolon/games/" +
             create_procname(name).as_ref(),
-    ));
+            ));
     if res.is_ok() {
         println!("Game removed!");
 
@@ -203,8 +208,8 @@ fn add_game(name: &str, exe: &str, wine: bool) {
     if can_be_used == true {
         println!("Creating shortcut for {:?} with a name of {}", path, name);
         let res = fs::create_dir(String::from(
-            String::from(get_home() + "/.config/eidolon/games/") + &name,
-        ));
+                String::from(get_home() + "/.config/eidolon/games/") + &name,
+                ));
         if res.is_ok() {
             //Writes executable file in correct folder with simple bash script to run the linked executable
             let mut file = OpenOptions::new()
@@ -213,7 +218,7 @@ fn add_game(name: &str, exe: &str, wine: bool) {
                 .mode(0o770)
                 .open(
                     String::from(get_home() + "/.config/eidolon/games/") + &name + "/start",
-                )
+                    )
                 .unwrap();
             let mut start = String::from("#!/bin/bash\n");
             if wine {
@@ -222,12 +227,12 @@ fn add_game(name: &str, exe: &str, wine: bool) {
             file.write_all(
                 String::from(
                     start +
-                        &(path.into_os_string().into_string().unwrap().replace(
+                    &(path.into_os_string().into_string().unwrap().replace(
                             " ",
                             "\\ ",
-                        )),
-                ).as_bytes(),
-            ).expect("Could not write game registry");
+                            )),
+                            ).as_bytes(),
+                            ).expect("Could not write game registry");
         }
     }
 }
@@ -253,17 +258,17 @@ fn update_steam(dirs: Vec<String>) {
                         .mode(0o770)
                         .open(
                             get_home() + "/.config/eidolon/games" + "/" + &procname + "/start",
-                        )
+                            )
                         .unwrap();
                     file.write_all(
                         (String::from("#!/bin/bash\nsteam 'steam://rungameid/") + &results.0 + "'")
-                            .as_bytes(),
-                    ).expect("Couldn't create game registration");
+                        .as_bytes(),
+                        ).expect("Couldn't create game registration");
                 } else {
                     println!(
                         "{}",
                         String::from("A shortcut has already been made for ") + &results.1
-                    );
+                        );
                 }
             }
         }
@@ -285,48 +290,48 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
     let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
     for entry in entries {
         let entry = entry.unwrap().path();
-    let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
-    for entry in entries {
-        let entry = entry.unwrap().path();
-        let new_entry = entry.into_os_string().into_string().unwrap();
-        if new_entry.find("appmanifest").is_some() {
-            let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
-            let mut contents = String::new();
-            f.read_to_string(&mut contents).expect(
-                "Could not read appmanifest",
-            );
-            unsafe {
-                //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
-                let outname = contents.slice_unchecked(
-                    contents.find("installdir").unwrap() + 14,
-                    contents.find("LastUpdated").unwrap() - 4,
-                );
-                if outname == rawname {
-
-                let appid = contents.slice_unchecked(
-                    contents.find("appid").unwrap() + 9,
-                    contents.find("Universe").unwrap() - 4,
-                );
-                let name = contents.slice_unchecked(
-                    contents.find("name").unwrap() + 8,
-                    contents.find("StateFlags").unwrap() - 4,
-                );
-                    return (
-                        String::from(appid),
-                        String::from(name),
-                        String::from(outname),
+        let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
+        for entry in entries {
+            let entry = entry.unwrap().path();
+            let new_entry = entry.into_os_string().into_string().unwrap();
+            if new_entry.find("appmanifest").is_some() {
+                let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
+                let mut contents = String::new();
+                f.read_to_string(&mut contents).expect(
+                    "Could not read appmanifest",
                     );
+                unsafe {
+                    //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
+                    let outname = contents.slice_unchecked(
+                        contents.find("installdir").unwrap() + 14,
+                        contents.find("LastUpdated").unwrap() - 4,
+                        );
+                    if outname == rawname {
+
+                        let appid = contents.slice_unchecked(
+                            contents.find("appid").unwrap() + 9,
+                            contents.find("Universe").unwrap() - 4,
+                            );
+                        let name = contents.slice_unchecked(
+                            contents.find("name").unwrap() + 8,
+                            contents.find("StateFlags").unwrap() - 4,
+                            );
+                        return (
+                            String::from(appid),
+                            String::from(name),
+                            String::from(outname),
+                            );
+                    }
                 }
             }
         }
-    }
     }
     //Return generic defaults
     return (
         String::from("appid"),
         String::from("name"),
         String::from("outname"),
-    );
+        );
 }
 fn proc_path(path: DirEntry) -> String {
     //Converts DirEntry into a fully processed file/directory name
