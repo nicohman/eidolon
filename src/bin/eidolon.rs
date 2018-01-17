@@ -26,6 +26,10 @@ fn interpret_args() {
                     command = "help";
                 } else {
                     command = &args[1];
+                    if !check_args_num(args.len() - 2, command.as_ref()){
+                        println!("Not enough arguments for {}", &command);
+                        ::std::process::exit(64);
+                    }
                 }
                 let config = get_config();
                 let menu_command = config.1;
@@ -44,6 +48,24 @@ fn interpret_args() {
                 }
             }
 }
+fn check_args_num(num:usize, command:&str) -> bool {
+    let need  = match command {
+        "update" => 0,
+        "add" => 2,
+        "rm" => 1,
+        "help" => 0,
+        "menu" => 0,
+        "import" => 1,
+        "imports" => 1,
+        "wine_add" => 2,
+        _ => 99,
+    };
+    if num < need {
+        false
+    } else {
+        true
+    }
+}
 fn get_config() -> (Vec<String>, String, String) {
     let mut conf = String::new();
     fs::File::open(get_home() + "/.config/eidolon/config")
@@ -56,9 +78,9 @@ fn get_config() -> (Vec<String>, String, String) {
         .split('|')
         .map(|x| String::from(x.trim()).replace("$HOME", &get_home()))
         .collect::<Vec<String>>();
-    let mut steam_vec = steam_base.drain(1..).collect::<Vec<String>>();
-    steam_vec.pop();
-    let new_steam_vec = Regex::new(r"\s*steam_dirs *: *\|((?:[^\|]+\|)+)").unwrap().captures_iter(steam_dirs).map(|x| x.get(1).unwrap().as_str()).collect::<Vec<&str>>();
+    //let mut steam_vec = steam_base.drain(1..).collect::<Vec<String>>();
+    //steam_vec.pop();
+    let new_steam_vec = Regex::new(r"\s*steam_dirs *: *\|((?:[^\|]+\|)+)").unwrap().captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str())).collect::<Vec<String>>();
     let menu_command_base = String::from(conf.next().unwrap());
     let prefix_command_bool = conf.next();
     let mut prefix_command:&str;
@@ -69,7 +91,7 @@ fn get_config() -> (Vec<String>, String, String) {
         prefix_command = " "
     }
     let menu_command = menu_command_base.split('|').collect::<Vec<&str>>()[1];
-    (steam_vec, String::from(menu_command), String::from(prefix_command))
+    (new_steam_vec, String::from(menu_command), String::from(prefix_command))
 }
 fn init() {
     fs::create_dir(get_home() + "/.config/eidolon").unwrap();
@@ -152,7 +174,7 @@ fn show_menu(menu_command: String, prefix_command:String) {
     }
     if game_list.lines().count() <= 0 {
         println!("No games added. Either run eidolon update or add games manually.");
-        let fail = Command::new("sh").arg("-c").arg("notify-send").arg(String::from("'No games added. Either run eidolon update or add games manually.'")).output().expect("Couldn't send notification");
+        Command::new("sh").arg("-c").arg("notify-send").arg(String::from("'No games added. Either run eidolon update or add games manually.'")).output().expect("Couldn't send notification");
     } else {
         let output = Command::new("sh")
             .arg("-c")

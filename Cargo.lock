@@ -1,16 +1,16 @@
-[root]
-name = "eidolon"
-version = "0.1.0"
-dependencies = [
- "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
 [[package]]
 name = "aho-corasick"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "memchr 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "eidolon"
+version = "0.1.0"
+dependencies = [
+ "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
