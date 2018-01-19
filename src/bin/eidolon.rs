@@ -43,10 +43,19 @@ fn interpret_args() {
                     "menu" => show_menu(menu_command, prefix_command),
                     "import" => import(&args[2]),
                     "imports" => imports(&args[2]),
+                    "run" => run_game(&args[2]),
                     "wine_add" => add_game(&args[2], &args[3], true),
                     _ => println!("Unknown command. eidolon help for commands."),
                 }
             }
+}
+fn run_game(name:&str) {
+    let proced = create_procname(name);
+    if fs::metadata(get_home()+"/.config/eidolon/games/"+&proced).is_err() {
+        println!("Couldn't find that game installed. Maybe you misspelled something?");
+    } else {
+        Command::new("sh").arg("-c").arg(get_home()+"/.config/eidolon/games/"+&proced+"/start").output().expect("Couldn't run selected game!");
+    }
 }
 fn check_args_num(num:usize, command:&str) -> bool {
     let need  = match command {
@@ -57,6 +66,7 @@ fn check_args_num(num:usize, command:&str) -> bool {
         "menu" => 0,
         "import" => 1,
         "imports" => 1,
+        "run" => 1,
         "wine_add" => 2,
         _ => 0,
     };
