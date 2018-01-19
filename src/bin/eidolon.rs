@@ -58,7 +58,7 @@ fn check_args_num(num:usize, command:&str) -> bool {
         "import" => 1,
         "imports" => 1,
         "wine_add" => 2,
-        _ => 99,
+        _ => 0,
     };
     if num < need {
         false
@@ -74,13 +74,8 @@ fn get_config() -> (Vec<String>, String, String) {
         .unwrap();
     let mut conf = conf.lines();
     let steam_dirs = conf.next().unwrap();
-    let mut steam_base = steam_dirs
-        .split('|')
-        .map(|x| String::from(x.trim()).replace("$HOME", &get_home()))
-        .collect::<Vec<String>>();
-    //let mut steam_vec = steam_base.drain(1..).collect::<Vec<String>>();
-    //steam_vec.pop();
-    let new_steam_vec = Regex::new(r"\s*steam_dirs *: *\|((?:[^\|]+\|)+)").unwrap().captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str())).collect::<Vec<String>>();
+    let dirs_pre = Regex::new(r"(\s*steam_dirs *: *\|(?:(?:[^\|\s]+)\|)+)").unwrap().captures(steam_dirs).unwrap().get(0).expect("Config file is incorrectly setup").as_str();
+    let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)").expect("Couldn't create regex").captures_iter(dirs_pre).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
     let menu_command_base = String::from(conf.next().unwrap());
     let prefix_command_bool = conf.next();
     let mut prefix_command:&str;
@@ -91,7 +86,7 @@ fn get_config() -> (Vec<String>, String, String) {
         prefix_command = " "
     }
     let menu_command = menu_command_base.split('|').collect::<Vec<&str>>()[1];
-    (new_steam_vec, String::from(menu_command), String::from(prefix_command))
+    (steam_vec, String::from(menu_command), String::from(prefix_command))
 }
 fn init() {
     fs::create_dir(get_home() + "/.config/eidolon").unwrap();
@@ -102,7 +97,7 @@ fn init() {
         .open(get_home() + "/.config/eidolon/config")
         .unwrap();
     file.write_all(
-        (String::from("steam_dirs: | $HOME/.local/share/steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
+        (String::from("steam_dirs: | $HOME/.local/share/Steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
         ).unwrap();
     println!("Correctly initialized base config. Please run again to use eidolon.");
 }
@@ -183,8 +178,6 @@ fn show_menu(menu_command: String, prefix_command:String) {
             .expect("Failed to run menu.");
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if parsed_output.trim().chars().count() > 0 {
-
-
             Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
         } else {
             println!("No game selected!");
@@ -258,18 +251,18 @@ fn add_game(name: &str, exe: &str, wine: bool) {
                             " ",
                             "\\ ",
                             )),
-                            ).as_bytes(),
-                            ).expect("Could not write game registry");
+                    ).as_bytes(),
+                ).expect("Could not write game registry");
         }
     }
 }
 fn update_steam(dirs: Vec<String>) {
     //Iterates through steam directories for installed steam games and creates registrations for all
     for x in &dirs {
+        println!(">> Reading in steam library {}", &x);
         let entries = fs::read_dir(x.to_owned() + "/common").expect("Can't read in games");
         for entry in entries {
             let entry = proc_path(entry.unwrap());
-
             //Calls search games to get appid and proper name to make the script
             let results = search_games(entry, x.to_owned());
             if results.1 == "name" {
@@ -316,9 +309,6 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
     //Searches given steam game directory for installed game with a directory name of [rawname]
     let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
     for entry in entries {
-        let entry = entry.unwrap().path();
-        let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
-        for entry in entries {
             let entry = entry.unwrap().path();
             let new_entry = entry.into_os_string().into_string().unwrap();
             if new_entry.find("appmanifest").is_some() {
@@ -328,9 +318,10 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
                     "Could not read appmanifest",
                     );
                 unsafe {
+                    if contents.find("installdir").is_some() {
                     //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
                     let outname = contents.slice_unchecked(
-                        contents.find("installdir").unwrap() + 14,
+                        contents.find("installdir").expect("Couldn't find install dir") + 14,
                         contents.find("LastUpdated").unwrap() - 4,
                         );
                     if outname == rawname {
@@ -350,8 +341,8 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
                             );
                     }
                 }
+                }
             }
-        }
     }
     //Return generic defaults
     return (
