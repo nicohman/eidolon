@@ -59,11 +59,8 @@ fn run_game(name:&str) {
 }
 fn check_args_num(num:usize, command:&str) -> bool {
     let need  = match command {
-        "update" => 0,
         "add" => 2,
         "rm" => 1,
-        "help" => 0,
-        "menu" => 0,
         "import" => 1,
         "imports" => 1,
         "run" => 1,
@@ -200,6 +197,7 @@ fn print_help() {
     println!("add [name] [file] : adds game to registry");
     println!("rm [name] : removes game from registry");
     println!("menu : shows game menu");
+    println!("run [game] : runs [game] without the menu");
     println!("import [dir] : attempts to import in game directory just from name of location.");
     println!("imports [dir] : imports in all game directories within given directory");
     println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
@@ -222,6 +220,7 @@ fn add_game(name: &str, exe: &str, wine: bool) {
     //Registers executable file as game with given name
     let mut path = env::current_dir().unwrap();
     path.push(exe);
+
     //Adds pwd to exe path
     let name = create_procname(name);
     let entries = fs::read_dir(get_home() + "/.config/eidolon/games").expect("Can't read in games");
@@ -261,8 +260,8 @@ fn add_game(name: &str, exe: &str, wine: bool) {
                             " ",
                             "\\ ",
                             )),
-                    ).as_bytes(),
-                ).expect("Could not write game registry");
+                            ).as_bytes(),
+                            ).expect("Could not write game registry");
         }
     }
 }
@@ -319,16 +318,16 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
     //Searches given steam game directory for installed game with a directory name of [rawname]
     let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
     for entry in entries {
-            let entry = entry.unwrap().path();
-            let new_entry = entry.into_os_string().into_string().unwrap();
-            if new_entry.find("appmanifest").is_some() {
-                let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
-                let mut contents = String::new();
-                f.read_to_string(&mut contents).expect(
-                    "Could not read appmanifest",
-                    );
-                unsafe {
-                    if contents.find("installdir").is_some() {
+        let entry = entry.unwrap().path();
+        let new_entry = entry.into_os_string().into_string().unwrap();
+        if new_entry.find("appmanifest").is_some() {
+            let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
+            let mut contents = String::new();
+            f.read_to_string(&mut contents).expect(
+                "Could not read appmanifest",
+                );
+            unsafe {
+                if contents.find("installdir").is_some() {
                     //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
                     let outname = contents.slice_unchecked(
                         contents.find("installdir").expect("Couldn't find install dir") + 14,
@@ -351,8 +350,8 @@ fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
                             );
                     }
                 }
-                }
             }
+        }
     }
     //Return generic defaults
     return (
