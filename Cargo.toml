@@ -1,7 +1,11 @@
 [package]
 name = "eidolon"
-version = "0.1.0"
+version = "1.1.0"
 authors = ["nicohman <nico.hickman@gmail.com>"]
-
+description="Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu."
+readme="README.md"
+keywords=["gaming", "steam", "games"]
+categories=["gui", "games", "command-line-interface"]
+license="GPL-3.0-or-later"
 [dependencies]
 regex = "0.2"
