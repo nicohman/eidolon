@@ -3,6 +3,8 @@ A conversion of steam_suite to rust with additional features.
 Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu. Simple, fast and lightweight.
 
 ## Installation
+You can now install from [crates.io](https://crates.io/crates/eidolon). Just run `cargo install eidolon` and install [rofi](https://github.com/DaveDavenport/rofi) via your distro's package manager!
+
 You'll need [rofi](https://github.com/DaveDavenport/rofi) and [cargo](https://github.com/rust-lang/cargo) installed. Run:
 
 `git clone https://github.com/nicohman/eidolon.git && cd eidolon`

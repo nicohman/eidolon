@@ -6,6 +6,6 @@ description="Provides a single TUI-based registry for drm-free, wine and steam g
 readme="README.md"
 keywords=["gaming", "steam", "games"]
 categories=["gui", "games", "command-line-interface"]
-license="GPL-3.0-or-later"
+license="GPL-3.0"
 [dependencies]
 regex = "0.2"

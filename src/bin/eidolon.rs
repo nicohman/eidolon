@@ -79,11 +79,9 @@ fn get_config() -> (Vec<String>, String, String) {
         .expect("Couldn't read config")
         .read_to_string(&mut conf)
         .expect("Couldn't read in config");
-    println!("1");
     let mut conf = conf.lines();
     let steam_dirs = conf.next().unwrap();
     let dirs_pre = Regex::new(r"(\s*steam_dirs *: *\|(?:(?:[^\|\s]+)\|)+)").unwrap().captures(steam_dirs).unwrap().get(0).expect("Config file is incorrectly setup").as_str();
-    println!("2");
     let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)").expect("Couldn't create regex").captures_iter(dirs_pre).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
     let menu_command_base = String::from(conf.next().unwrap());
     let prefix_command_bool = conf.next();
@@ -94,7 +92,6 @@ fn get_config() -> (Vec<String>, String, String) {
     } else {
         prefix_command = " "
     }
-    println!("3");
     let menu_command = menu_command_base.split('|').collect::<Vec<&str>>()[1];
     (steam_vec, String::from(menu_command), String::from(prefix_command))
 }
