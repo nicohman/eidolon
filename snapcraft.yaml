@@ -1,0 +1,16 @@
+name: eidolon
+version: git
+summary: Fast, useful game register and launcher
+description: |
+        Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu. Simple, fast and lightweight.
+parts:
+        eidolon:
+                source: https://github.com/nicohman/eidolon.git
+                plugin: rust
+                stage-packages:
+                        - rofi
+confinement: devmode
+apps:
+        eidolon:
+                command:
+                        eidolon
