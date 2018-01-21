@@ -96,8 +96,11 @@ fn get_config() -> (Vec<String>, String, String) {
     (steam_vec, String::from(menu_command), String::from(prefix_command))
 }
 fn init() {
-    fs::create_dir(get_home() + "/.config/eidolon").unwrap();
-    fs::create_dir(get_home() + "/.config/eidolon/games").unwrap();
+    if fs::metadata(get_home()+"/.config").is_err() {
+        fs::create_dir(get_home()+"/.config").expect("Couldn't create config directory");
+    }
+    fs::create_dir(get_home() + "/.config/eidolon").expect("Couldn't create eidolon directory");
+    fs::create_dir(get_home() + "/.config/eidolon/games").expect("Couldn't create games directory");
     let mut file = OpenOptions::new()
         .create(true)
         .write(true)
