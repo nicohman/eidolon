@@ -187,10 +187,14 @@ fn show_menu(menu_command: String, prefix_command:String) {
             .output()
             .expect("Failed to run menu.");
         let parsed_output = String::from_utf8_lossy(&output.stdout);
+        if output.status.success() {
         if parsed_output.trim().chars().count() > 0 {
             Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
         } else {
             println!("No game selected!");
+        }
+        } else {
+            println!("Okay, something went wrong. Your menu command:\n{}\n doesn't work. If you're using the default, have you installed rofi?", &menu_command);
         }
     }
 }
