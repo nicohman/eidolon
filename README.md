@@ -22,7 +22,11 @@ update : updates registry with installed steam games
 
 add [name] [file] : adds game to registry
 
+list : lists all installed games
+
 rm [name] : removes game from registry
+
+run [name] : runs the named game
 
 menu : shows game menu
 

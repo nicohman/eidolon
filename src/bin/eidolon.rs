@@ -42,12 +42,27 @@ fn interpret_args() {
                     "help" => print_help(),
                     "menu" => show_menu(menu_command, prefix_command),
                     "import" => import(&args[2]),
+                    "list" => list_games(),
                     "imports" => imports(&args[2]),
                     "run" => run_game(&args[2]),
                     "wine_add" => add_game(&args[2], &args[3], true),
                     _ => println!("Unknown command. eidolon help for commands."),
                 }
             }
+}
+fn list_games() {
+    println!("Currently registered games:");
+        let entries = fs::read_dir(get_home() + "/.config/eidolon/games")
+        .expect("Can't read in games")
+        .collect::<Vec<io::Result<DirEntry>>>()
+        .into_iter()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .collect::<Vec<String>>();
+        let mut num = 0;
+        for entry in entries {
+            println!("{} - {}", num, entry);
+            num = num +1;
+        }
 }
 fn run_game(name:&str) {
     let proced = create_procname(name);
@@ -198,9 +213,10 @@ fn print_help() {
     println!("Commands:");
     println!("update : updates registry with installed steam games");
     println!("add [name] [file] : adds game to registry");
+    println!("list : lists installed games");
     println!("rm [name] : removes game from registry");
     println!("menu : shows game menu");
-    println!("run [game] : runs [game] without the menu");
+    println!("run [name] : runs named game");
     println!("import [dir] : attempts to import in game directory just from name of location.");
     println!("imports [dir] : imports in all game directories within given directory");
     println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
