@@ -122,7 +122,7 @@ fn init() {
         .open(get_home() + "/.config/eidolon/config")
         .unwrap();
     file.write_all(
-        (String::from("steam_dirs: | $HOME/.local/share/Steam/steamapps |\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
+        (String::from("steam_dirs: |$HOME/.local/share/Steam/steamapps|\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
         ).unwrap();
     println!("Correctly initialized base config. Please run again to use eidolon.");
 }
