@@ -27,13 +27,18 @@ pub mod eidolon {
         }
     }
     pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
-        let games = Command::new("lutris").arg("-l").output().expect("Couldn't run lutris list games command");
-        if games.status.success() {
-            let games_list = String::from_utf8_lossy(&games.stdout);
-            Ok(games_list.lines().filter(|x| x.find("wine").is_some()).map(|x| {
-                let n = x.split("|").collect::<Vec<&str>>();
-                (String::from(n[0].trim()), String::from(n[1].trim()))
-            }).collect::<Vec<(String, String)>>())
+        let games = Command::new("lutris").arg("-l").output();
+        if games.is_ok(){
+            let games = games.unwrap();
+            if games.status.success() {
+                let games_list = String::from_utf8_lossy(&games.stdout);
+                Ok(games_list.lines().filter(|x| x.find("wine").is_some()).map(|x| {
+                    let n = x.split("|").collect::<Vec<&str>>();
+                    (String::from(n[0].trim()), String::from(n[1].trim()))
+                }).collect::<Vec<(String, String)>>())
+            } else {
+                Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
+            }
         } else {
             Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
         }
@@ -41,7 +46,7 @@ pub mod eidolon {
     pub fn update_lutris() {
         let lut = get_lutris();
         if lut.is_err() {
-            println!(">> No wine games found in lutris");
+            println!(">> No wine games found in lutris, or lutris not installed");
         } else {
             println!(">> Reading in lutris wine games");
             for game in lut.unwrap() {

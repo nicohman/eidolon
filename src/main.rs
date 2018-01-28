@@ -32,6 +32,7 @@ fn interpret_args() {
                         eidolon::update_steam(steam_dirs);
                         eidolon::update_lutris();
                     },
+                    "version" => print_version(),
                     "add" => eidolon::add_game(&args[2], &args[3], false),
                     "rm" => eidolon::rm_game(&args[2]),
                     "help" => print_help(),
@@ -60,6 +61,11 @@ fn check_args_num(num:usize, command:&str) -> bool {
     } else {
         true
     }
+}
+fn print_version() {
+    println!("Eidolon Game Launcher v1.2.5");
+    println!("Created by Nicholas Hickman");
+    println!("For support, file an issue at https://github.com/nicohman/eidolon or email nico.hickman@gmail.com");
 }
 fn show_menu(menu_command: String, prefix_command:String) {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
@@ -104,7 +110,7 @@ fn show_menu(menu_command: String, prefix_command:String) {
 }
 fn print_help() {
     println!("Commands:");
-    println!("update : updates registry with installed steam games");
+    println!("update : updates registry with installed steam games and lutris wine games");
     println!("add [name] [file] : adds game to registry");
     println!("list : lists installed games");
     println!("rm [name] : removes game from registry");
@@ -113,6 +119,7 @@ fn print_help() {
     println!("import [dir] : attempts to import in game directory just from name of location.");
     println!("imports [dir] : imports in all game directories within given directory");
     println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
+    println!("version : displays the current eidolon version and contact info");
     println!("help : show this screen");
 }
 

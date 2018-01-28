@@ -22,8 +22,8 @@ Alternatively, check [here](https://github.com/nicohman/eidolon/releases) for a 
 `eidolon help` for list of commands:
 ```Commands:
 
-update : updates registry with installed steam games
-
+update : updates registry with installed steam games and lutris wine games
+ 
 add [name] [file] : adds game to registry
 
 list : lists all installed games
@@ -39,6 +39,8 @@ import [dir] : attempts to import in game directory just from name of location.
 imports [dir] : imports in all game directories within given directory
 
 wine_add [name] [.exe] : adds windows exe to be run under wine to the registry
+
+version : displays the current eidolon version and contact info
 
 help : show this screen
 
