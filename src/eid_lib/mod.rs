@@ -26,11 +26,14 @@ pub mod eidolon {
             num = num +1;
         }
     }
-    pub fn get_lutris() -> Result<Vec<String>, io::Error> {
+    pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
         let games = Command::new("lutris").arg("-l").output().expect("Couldn't run lutris list games command");
         if games.status.success() {
             let games_list = String::from_utf8_lossy(&games.stdout);
-            Ok(games_list.lines().filter(|x| x.find("wine").is_some()).map(String::from).collect::<Vec<String>>())
+            Ok(games_list.lines().filter(|x| x.find("wine").is_some()).map(|x| {
+                let n = x.split("|").collect::<Vec<&str>>();
+                (String::from(n[0].trim()), String::from(n[1].trim()))
+            }).collect::<Vec<(String, String)>>())
         } else {
             Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
         }
@@ -38,9 +41,26 @@ pub mod eidolon {
     pub fn update_lutris() {
         let lut = get_lutris();
         if lut.is_err() {
-            println!("Lutris no work");
+            println!(">> No wine games found in lutris");
         } else {
-           //println!("{:?}", lut.unwrap()); 
+            println!(">> Reading in lutris wine games");
+            for game in lut.unwrap() {
+                let procname = create_procname(&game.1);
+                let res = fs::create_dir(get_home()+"/.config/eidolon/games/"+&procname);
+                if res.is_ok() {
+                    println!("Made shortcut for {}", &game.1);
+                    OpenOptions::new()
+                        .create(true)
+                        .write(true)
+                        .mode(0o770)
+                        .open(
+                            String::from(get_home() + "/.config/eidolon/games/") + &procname + "/start",
+                            )
+                        .unwrap().write_all((String::from("#!/bin/bash\nlutris lutris:rungameid/")+&game.0).as_bytes()).expect("Couldn't write lutris game");
+                } else {
+                    println!("Shorcut already made for {}", &game.0);
+                }
+            }
         }
     }
     pub fn run_game(name:&str) {
