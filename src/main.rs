@@ -10,12 +10,7 @@ fn main() {
     interpret_args();
 }
 fn interpret_args() {
-    if fs::metadata(eidolon::get_home() + "/.config/eidolon").is_err() ||
-        fs::metadata(eidolon::get_home() + "/.config/eidolon/config").is_err() ||
-            fs::metadata(eidolon::get_home() + "/.config/eidolon/games").is_err()
-            {
-                eidolon::init();
-            } else {
+    if eidolon::startup() {
                 //Matches arguments to their relevant functions
                 let args: Vec<String> = env::args().collect();
                 let command: &str;

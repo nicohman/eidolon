@@ -279,6 +279,24 @@ pub mod eidolon {
             String::from("outname"),
             );
     }
+    pub fn startup() -> bool {
+        if check_inited() {
+            true
+        } else {
+            init();
+            ::std::process::exit(0);
+        }
+    }
+    pub fn check_inited() -> bool {
+        if fs::metadata(get_home() + "/.config/eidolon").is_err() ||
+            fs::metadata(get_home() + "/.config/eidolon/config").is_err() ||
+                fs::metadata(get_home() + "/.config/eidolon/games").is_err()
+                {
+                    false
+                } else {
+                    true
+                }
+    }
     pub fn proc_path(path: DirEntry) -> String {
         //Converts DirEntry into a fully processed file/directory name
         let base = path.file_name().into_string().unwrap();
