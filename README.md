@@ -63,6 +63,5 @@ prefix_command: | |
 ```
 ## Todo
 
-+ Add in support for importation of wine games from lutris, preferably without actually using lutris launch links
-+ Please suggest any other features you want as an issue!
++ Please suggest any features you want as an issue!
 
