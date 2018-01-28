@@ -9,6 +9,7 @@ pub mod eidolon {
     use std::env;
     use std::process::Command;
     use std::fs::DirEntry;
+    use std::io::{Error, ErrorKind};
     use std::io;
     use regex::Regex;
     pub fn list_games() {
@@ -23,6 +24,23 @@ pub mod eidolon {
         for entry in entries {
             println!("{} - {}", num, entry);
             num = num +1;
+        }
+    }
+    pub fn get_lutris() -> Result<Vec<String>, io::Error> {
+        let games = Command::new("lutris").arg("-l").output().expect("Couldn't run lutris list games command");
+        if games.status.success() {
+            let games_list = String::from_utf8_lossy(&games.stdout);
+            Ok(games_list.lines().filter(|x| x.find("wine").is_some()).map(String::from).collect::<Vec<String>>())
+        } else {
+            Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
+        }
+    }
+    pub fn update_lutris() {
+        let lut = get_lutris();
+        if lut.is_err() {
+            println!("Lutris no work");
+        } else {
+           //println!("{:?}", lut.unwrap()); 
         }
     }
     pub fn run_game(name:&str) {
@@ -41,7 +59,7 @@ pub mod eidolon {
             .expect("Couldn't read in config");
         let mut conf = conf.lines();
         let steam_dirs = conf.next().unwrap();
-        let steam_vec = Regex::new(r"(?:([^\|\s]+)\s*\|)").expect("Couldn't create regex").captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
+        let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)").expect("Couldn't create regex").captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
         let menu_command_base = String::from(conf.next().unwrap());
         let prefix_command_bool = conf.next();
         let mut prefix_command:&str;

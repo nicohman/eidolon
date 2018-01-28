@@ -28,7 +28,10 @@ fn interpret_args() {
                 let steam_dirs = config.0;
                 let prefix_command = config.2;
                 match command.as_ref() {
-                    "update" => eidolon::update_steam(steam_dirs),
+                    "update" => {
+                        eidolon::update_steam(steam_dirs);
+                        eidolon::update_lutris();
+                    },
                     "add" => eidolon::add_game(&args[2], &args[3], false),
                     "rm" => eidolon::rm_game(&args[2]),
                     "help" => print_help(),
