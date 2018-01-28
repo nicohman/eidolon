@@ -48,21 +48,21 @@ fn interpret_args() {
             }
 }
 fn check_args_num(num:usize, command:&str) -> bool {
-        let need  = match command {
-            "add" => 2,
-            "rm" => 1,
-            "import" => 1,
-            "imports" => 1,
-            "run" => 1,
-            "wine_add" => 2,
-            _ => 0,
-        };
-        if num < need {
-            false
-        } else {
-            true
-        }
+    let need  = match command {
+        "add" => 2,
+        "rm" => 1,
+        "import" => 1,
+        "imports" => 1,
+        "run" => 1,
+        "wine_add" => 2,
+        _ => 0,
+    };
+    if num < need {
+        false
+    } else {
+        true
     }
+}
 fn show_menu(menu_command: String, prefix_command:String) {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
     let mut entries = fs::read_dir(eidolon::get_home() + "/.config/eidolon/games")
@@ -89,13 +89,18 @@ fn show_menu(menu_command: String, prefix_command:String) {
             .expect("Failed to run menu.");
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if output.status.success() {
-        if parsed_output.trim().chars().count() > 0 {
-            Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
+            if parsed_output.trim().chars().count() > 0 {
+                Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
+            } else {
+                println!("No game selected!");
+            }
         } else {
-            println!("No game selected!");
-        }
-        } else {
-            println!("Okay, something went wrong. Your menu command:\n{}\n doesn't work. If you're using the default, have you installed rofi?", &menu_command);
+            if parsed_output.trim().chars().count() > 0 {
+
+                println!("Okay, something went wrong. Your menu command:\n{}\n doesn't work. If you're using the default, have you installed rofi?", &menu_command);
+            } else {
+                println!("No game selected!");
+            }
         }
     }
 }
@@ -112,4 +117,4 @@ fn print_help() {
     println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
     println!("help : show this screen");
 }
- 
+
