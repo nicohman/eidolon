@@ -41,7 +41,7 @@ pub mod eidolon {
             .expect("Couldn't read in config");
         let mut conf = conf.lines();
         let steam_dirs = conf.next().unwrap();
-        let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)").expect("Couldn't create regex").captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
+        let steam_vec = Regex::new(r"(?:([^\|\s]+)\s*\|)").expect("Couldn't create regex").captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
         let menu_command_base = String::from(conf.next().unwrap());
         let prefix_command_bool = conf.next();
         let mut prefix_command:&str;
