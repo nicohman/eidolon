@@ -12,15 +12,18 @@ pub mod eidolon {
     use std::io::{Error, ErrorKind};
     use std::io;
     use regex::Regex;
-    pub fn list_games() {
-        println!("Currently registered games:");
-        let entries = fs::read_dir(get_home() + "/.config/eidolon/games")
+    pub fn get_games () -> Vec<String> {
+        fs::read_dir(get_home() + "/.config/eidolon/games")
             .expect("Can't read in games")
             .collect::<Vec<io::Result<DirEntry>>>()
             .into_iter()
             .map(|entry| entry.unwrap().file_name().into_string().unwrap())
-            .collect::<Vec<String>>();
+            .collect::<Vec<String>>()
+    }
+    pub fn list_games() {
+        println!("Currently registered games:");
         let mut num = 0;
+        let entries = get_games();
         for entry in entries {
             println!("{} - {}", num, entry);
             num = num +1;
@@ -185,11 +188,9 @@ pub mod eidolon {
 
         //Adds pwd to exe path
         let name = create_procname(name);
-        let entries = fs::read_dir(get_home() + "/.config/eidolon/games").expect("Can't read in games");
+        let entries = get_games();
         let mut can_be_used = true;
         for entry in entries {
-            let entry = proc_path(entry.unwrap());
-
             //Checks to ensure that game is not already registered with selected name
             if entry == name {
                 println!("Game already registered with that name. Pick another");
