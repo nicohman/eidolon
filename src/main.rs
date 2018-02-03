@@ -82,6 +82,7 @@ fn show_menu(menu_command: String, prefix_command:String) {
         game_list.push_str(&entry);
         game_list.push_str("\n");
     }
+    game_list = String::from(game_list.trim());
     if game_list.lines().count() <= 0 {
         println!("No games added. Either run eidolon update or add games manually.");
         Command::new("sh").arg("-c").arg("notify-send").arg(String::from("'No games added. Either run eidolon update or add games manually.'")).output().expect("Couldn't send notification");
