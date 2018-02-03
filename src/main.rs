@@ -63,7 +63,7 @@ fn check_args_num(num:usize, command:&str) -> bool {
     }
 }
 fn print_version() {
-    println!("Eidolon Game Launcher v1.2.5");
+    println!("Eidolon Game Launcher v1.2.6");
     println!("Created by Nicholas Hickman");
     println!("For support, file an issue at https://github.com/nicohman/eidolon or email nico.hickman@gmail.com");
 }
