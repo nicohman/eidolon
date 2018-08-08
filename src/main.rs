@@ -4,6 +4,10 @@ use std::process::Command;
 use std::fs::DirEntry;
 use std::io;
 extern crate regex;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
 mod eid_lib;
 use eid_lib::eidolon;
 fn main() {
@@ -24,9 +28,9 @@ fn interpret_args() {
                     }
                 }
                 let config = eidolon::get_config();
-                let menu_command = config.1;
-                let steam_dirs = config.0;
-                let prefix_command = config.2;
+                let menu_command = config.menu_command;
+                let steam_dirs = config.steam_dirs;
+                let prefix_command = config.prefix_command;
                 match command.as_ref() {
                     "update" => {
                         eidolon::update_steam(steam_dirs);

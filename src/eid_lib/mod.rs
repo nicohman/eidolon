@@ -12,7 +12,24 @@ pub mod eidolon {
     use std::io::{Error, ErrorKind};
     use std::io;
     use regex::Regex;
-    pub fn get_games () -> Vec<String> {
+    use serde_json;
+    #[derive(Serialize, Deserialize, Debug)]
+    pub struct Config {
+        pub steam_dirs: Vec<String>,
+        pub menu_command: String,
+        pub prefix_command: String,
+    }
+    impl Config {
+        fn default() -> Config {
+            Config {
+                steam_dirs: vec!["$HOME/.local/share/Steam/steamapps".to_string()],
+                menu_command: "rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu"
+                    .to_string(),
+                prefix_command: "".to_string(),
+            }
+        }
+    }
+    pub fn get_games() -> Vec<String> {
         fs::read_dir(get_home() + "/.config/eidolon/games")
             .expect("Can't read in games")
             .collect::<Vec<io::Result<DirEntry>>>()
@@ -26,19 +43,25 @@ pub mod eidolon {
         let entries = get_games();
         for entry in entries {
             println!("{} - {}", num, entry);
-            num = num +1;
+            num = num + 1;
         }
     }
     pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
         let games = Command::new("lutris").arg("-l").output();
-        if games.is_ok(){
+        if games.is_ok() {
             let games = games.unwrap();
             if games.status.success() {
                 let games_list = String::from_utf8_lossy(&games.stdout);
-                Ok(games_list.lines().filter(|x| x.find("wine").is_some()).map(|x| {
-                    let n = x.split("|").collect::<Vec<&str>>();
-                    (String::from(n[0].trim()), String::from(n[1].trim()))
-                }).collect::<Vec<(String, String)>>())
+                Ok(
+                    games_list
+                        .lines()
+                        .filter(|x| x.find("wine").is_some())
+                        .map(|x| {
+                            let n = x.split("|").collect::<Vec<&str>>();
+                            (String::from(n[0].trim()), String::from(n[1].trim()))
+                        })
+                        .collect::<Vec<(String, String)>>(),
+                )
             } else {
                 Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
             }
@@ -54,7 +77,7 @@ pub mod eidolon {
             println!(">> Reading in lutris wine games");
             for game in lut.unwrap() {
                 let procname = create_procname(&game.1);
-                let res = fs::create_dir(get_home()+"/.config/eidolon/games/"+&procname);
+                let res = fs::create_dir(get_home() + "/.config/eidolon/games/" + &procname);
                 if res.is_ok() {
                     println!("Made shortcut for {}", &game.1);
                     OpenOptions::new()
@@ -66,20 +89,56 @@ pub mod eidolon {
                             )
                         .unwrap().write_all((String::from("#!/bin/bash\nlutris lutris:rungameid/")+&game.0).as_bytes()).expect("Couldn't write lutris game");
                 } else {
-                    println!("Shorcut already made for {}", &game.0);
+                    println!("Shorcut already made for {}", &game.1);
                 }
             }
         }
     }
-    pub fn run_game(name:&str) {
+    pub fn run_game(name: &str) {
         let proced = create_procname(name);
-        if fs::metadata(get_home()+"/.config/eidolon/games/"+&proced).is_err() {
+        if fs::metadata(get_home() + "/.config/eidolon/games/" + &proced).is_err() {
             println!("Couldn't find that game installed. Maybe you misspelled something?");
         } else {
-            Command::new("sh").arg("-c").arg(get_home()+"/.config/eidolon/games/"+&proced+"/start").output().expect("Couldn't run selected game!");
+            Command::new("sh")
+                .arg("-c")
+                .arg(get_home() + "/.config/eidolon/games/" + &proced + "/start")
+                .output()
+                .expect("Couldn't run selected game!");
         }
     }
-    pub fn get_config() -> (Vec<String>, String, String) {
+    pub fn convert_config() {
+        let old = get_config_old();
+        let conf = Config {
+            steam_dirs: old.0
+                .into_iter()
+                .map(|x| String::from(x))
+                .collect::<Vec<String>>(),
+            menu_command: String::from(old.1),
+            prefix_command: String::from(old.2),
+        };
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(get_home() + "/.config/eidolon/config.json")
+            .unwrap()
+            .write_all(serde_json::to_string(&conf).unwrap().as_bytes())
+            .unwrap();
+        fs::remove_file(get_home() + "/.config/eidolon/config").unwrap();
+    }
+    pub fn get_config() -> Config {
+        let mut confS = String::new();
+        fs::File::open(get_home() + "/.config/eidolon/config.json")
+            .expect("Couldn't read config")
+            .read_to_string(&mut confS)
+            .unwrap();
+        let mut config: Config = serde_json::from_str(&confS).unwrap();
+        let mut fixed = config.steam_dirs.into_iter();
+        config.steam_dirs = fixed
+            .map(|x| String::from(x.as_str().replace("$HOME", &get_home())))
+            .collect::<Vec<String>>();
+        config
+    }
+    pub fn get_config_old() -> (Vec<String>, String, String) {
         let mut conf = String::new();
         fs::File::open(get_home() + "/.config/eidolon/config")
             .expect("Couldn't read config")
@@ -87,10 +146,16 @@ pub mod eidolon {
             .expect("Couldn't read in config");
         let mut conf = conf.lines();
         let steam_dirs = conf.next().unwrap();
-        let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)").expect("Couldn't create regex").captures_iter(steam_dirs).map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))).collect::<Vec<String>>();
+        let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)")
+            .expect("Couldn't create regex")
+            .captures_iter(steam_dirs)
+            .map(|x| {
+                String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))
+            })
+            .collect::<Vec<String>>();
         let menu_command_base = String::from(conf.next().unwrap());
         let prefix_command_bool = conf.next();
-        let mut prefix_command:&str;
+        let mut prefix_command: &str;
         if prefix_command_bool.is_some() {
             prefix_command = prefix_command_bool.unwrap();
             prefix_command = prefix_command.split('|').collect::<Vec<&str>>()[1];
@@ -98,23 +163,30 @@ pub mod eidolon {
             prefix_command = " "
         }
         let menu_command = menu_command_base.split('|').collect::<Vec<&str>>()[1];
-        (steam_vec, String::from(menu_command), String::from(prefix_command))
+        (
+            steam_vec,
+            String::from(menu_command),
+            String::from(prefix_command),
+        )
     }
     pub fn init() {
         println!("Beginning config init");
-        if fs::metadata(get_home()+"/.config").is_err() {
-            fs::create_dir(get_home()+"/.config").expect("Couldn't create config directory");
+        if fs::metadata(get_home() + "/.config").is_err() {
+            fs::create_dir(get_home() + "/.config").expect("Couldn't create config directory");
         }
         fs::create_dir(get_home() + "/.config/eidolon").expect("Couldn't create eidolon directory");
-        fs::create_dir(get_home() + "/.config/eidolon/games").expect("Couldn't create games directory");
+        fs::create_dir(get_home() + "/.config/eidolon/games")
+            .expect("Couldn't create games directory");
         let mut file = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(get_home() + "/.config/eidolon/config")
+            .open(get_home() + "/.config/eidolon/config.json")
             .unwrap();
         file.write_all(
-            (String::from("steam_dirs: |$HOME/.local/share/Steam/steamapps|\nmenu_command: | rofi -theme sidebar -mesg 'eidolon game:' -p '> ' -dmenu |\nprefix_command: | |")).as_bytes(),
-            ).unwrap();
+            serde_json::to_string(&Config::default())
+                .unwrap()
+                .as_bytes(),
+        ).unwrap();
         println!("Correctly initialized base config. Please run again to use eidolon.");
     }
     pub fn imports(dir: &str) {
@@ -160,20 +232,20 @@ pub mod eidolon {
                 &procname,
                 &(path.into_os_string().into_string().unwrap() + "/" + &found_game),
                 false,
-                );
+            );
         } else {
             println!(
                 "Could not find recognizable game exe. You will have to manually specify using eidolon add [name] [exe]"
-                );
+            );
 
         }
     }
     pub fn rm_game(name: &str) {
         //Removes folder of named game
         let res = fs::remove_dir_all(String::from(
-                get_home() + "/.config/eidolon/games/" +
+            get_home() + "/.config/eidolon/games/" +
                 create_procname(name).as_ref(),
-                ));
+        ));
         if res.is_ok() {
             println!("Game removed!");
 
@@ -200,8 +272,8 @@ pub mod eidolon {
         if can_be_used == true {
             println!("Creating shortcut for {:?} with a name of {}", path, name);
             let res = fs::create_dir(String::from(
-                    String::from(get_home() + "/.config/eidolon/games/") + &name,
-                    ));
+                String::from(get_home() + "/.config/eidolon/games/") + &name,
+            ));
             if res.is_ok() {
                 //Writes executable file in correct folder with simple bash script to run the linked executable
                 let mut file = OpenOptions::new()
@@ -210,38 +282,43 @@ pub mod eidolon {
                     .mode(0o770)
                     .open(
                         String::from(get_home() + "/.config/eidolon/games/") + &name + "/start",
-                        )
+                    )
                     .unwrap();
                 let mut start = String::from("#!/bin/bash\n");
                 if wine {
-                    start.push_str("wine ");
+                    let mut winestr = String::from("wine ");
+                    if exe.to_lowercase().contains(".lnk") {
+                        winestr = winestr + "start ";
+                    }
+                    start.push_str(&winestr);
                 }
                 file.write_all(
                     String::from(
                         start +
-                        &(path.into_os_string().into_string().unwrap().replace(
+                            &(path.into_os_string().into_string().unwrap().replace(
                                 " ",
                                 "\\ ",
-                                )),
-                                ).as_bytes(),
-                                ).expect("Could not write game registry");
+                            )),
+                    ).as_bytes(),
+                ).expect("Could not write game registry");
             }
         }
     }
     pub fn update_steam(dirs: Vec<String>) {
         //Iterates through steam directories for installed steam games and creates registrations for all
+        let mut already = fs::read_dir(get_home()+"/.config/eidolon/games").unwrap().into_iter().map(|x| proc_path(x.unwrap())).collect::<Vec<String>>();
         for x in &dirs {
             println!(">> Reading in steam library {}", &x);
-            let entries = fs::read_dir(x.to_owned() + "/common").expect("Can't read in games");
+            let entries = fs::read_dir(x.to_owned() + "/common").expect("Can't read in games").into_iter().map(|x| proc_path(x.unwrap()));
             for entry in entries {
-                let entry = proc_path(entry.unwrap());
                 //Calls search games to get appid and proper name to make the script
                 let results = search_games(entry, x.to_owned());
                 if results.1 == "name" {
-                    println!("Could not find game as refrenced by .vdf");
+                   // println!("Could not find game as refrenced by .vdf");
                 } else {
                     let procname = create_procname(&results.1);
-                    let res = fs::create_dir(get_home() + "/.config/eidolon/games" + "/" + &procname);
+                    let res =
+                        fs::create_dir(get_home() + "/.config/eidolon/games" + "/" + &procname);
                     if res.is_ok() {
                         println!("Made shortcut for {}", &results.1);
                         let mut file = OpenOptions::new()
@@ -250,22 +327,38 @@ pub mod eidolon {
                             .mode(0o770)
                             .open(
                                 get_home() + "/.config/eidolon/games" + "/" + &procname + "/start",
-                                )
+                            )
                             .unwrap();
                         file.write_all(
-                            (String::from("#!/bin/bash\nsteam 'steam://rungameid/") + &results.0 + "'")
-                            .as_bytes(),
-                            ).expect("Couldn't create game registration");
+                            (String::from("#!/bin/bash\nsteam 'steam://rungameid/") + &results.0 +
+                                 "'")
+                                .as_bytes(),
+                        ).expect("Couldn't create game registration");
                     } else {
                         println!(
                             "{}",
                             String::from("A shortcut has already been made for ") + &results.1
-                            );
-                    }
+                        );
+                        let mut i = 0;
+                        while i < already.len() {
+                            if already[i] == procname {
+                                already.remove(i);
+                            } 
+                            i += 1;
+                        }
+
+                        }
                 }
             }
         }
-
+        for al in already {
+           let mut s = String::new();
+           fs::File::open(get_home()+"/.config/eidolon/games/"+&al+"/start").unwrap().read_to_string(&mut s).unwrap();
+           if s.find("steam 'steam://rungameid").is_some() {
+               println!("{} has been uninstalled. Removing game from registry.", al);
+                rm_game(&al); 
+           }
+        }
     }
     pub fn create_procname(rawname: &str) -> (String) {
         //Formats game name into nice-looking underscored name
@@ -288,29 +381,31 @@ pub mod eidolon {
                 let mut contents = String::new();
                 f.read_to_string(&mut contents).expect(
                     "Could not read appmanifest",
-                    );
+                );
                 unsafe {
                     if contents.find("installdir").is_some() {
                         //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
                         let outname = contents.slice_unchecked(
-                            contents.find("installdir").expect("Couldn't find install dir") + 14,
+                            contents.find("installdir").expect(
+                                "Couldn't find install dir",
+                            ) + 14,
                             contents.find("LastUpdated").unwrap() - 4,
-                            );
+                        );
                         if outname == rawname {
 
                             let appid = contents.slice_unchecked(
                                 contents.find("appid").unwrap() + 9,
                                 contents.find("Universe").unwrap() - 4,
-                                );
+                            );
                             let name = contents.slice_unchecked(
                                 contents.find("name").unwrap() + 8,
                                 contents.find("StateFlags").unwrap() - 4,
-                                );
+                            );
                             return (
                                 String::from(appid),
                                 String::from(name),
                                 String::from(outname),
-                                );
+                            );
                         }
                     }
                 }
@@ -321,7 +416,7 @@ pub mod eidolon {
             String::from("appid"),
             String::from("name"),
             String::from("outname"),
-            );
+        );
     }
     pub fn startup() -> bool {
         if check_inited() {
@@ -333,13 +428,19 @@ pub mod eidolon {
     }
     pub fn check_inited() -> bool {
         if fs::metadata(get_home() + "/.config/eidolon").is_err() ||
-            fs::metadata(get_home() + "/.config/eidolon/config").is_err() ||
-                fs::metadata(get_home() + "/.config/eidolon/games").is_err()
-                {
-                    false
-                } else {
-                    true
-                }
+            fs::metadata(get_home() + "/.config/eidolon/games").is_err()
+        {
+            false
+        } else {
+            if fs::metadata(get_home() + "/.config/eidolon/config").is_ok() {
+                convert_config();
+                true
+            } else if fs::metadata(get_home() + "/.config/eidolon/config.json").is_ok() {
+                true
+            } else {
+                false
+            }
+        }
     }
     pub fn proc_path(path: DirEntry) -> String {
         //Converts DirEntry into a fully processed file/directory name
