@@ -7,6 +7,7 @@ extern crate regex;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
+#[macro_use]
 extern crate serde_json;
 mod eid_lib;
 use eid_lib::eidolon;
@@ -35,6 +36,7 @@ fn interpret_args() {
                     "update" => {
                         eidolon::update_steam(steam_dirs);
                         eidolon::update_lutris();
+                        eidolon::update_itch();
                     },
                     "version" => print_version(),
                     "add" => eidolon::add_game(&args[2], &args[3], false),

@@ -27,7 +27,7 @@ It appears someone is maintaining a package on the [AUR](https://aur.archlinux.o
 `eidolon help` for list of commands:
 ```Commands:
 
-update : updates registry with installed steam games and lutris wine games
+update : updates registry with installed steam games, lutris wine games and itch games
  
 add [name] [file] : adds game to registry
 
