@@ -85,10 +85,21 @@ pub mod eidolon {
     }
     pub fn add_game(game: Game) {
         if fs::metadata(get_home()+"/.config/eidolon/games/"+&game.name+".json").is_ok() {
-            println!("Already made a shortcut for {}", game.pname);
+            println!("  Already made a shortcut for {}", game.pname);
         } else {
+            let mut ok = true;
+            let blocked = get_config().blocked;
+            for block in blocked {
+                if game.name == block {
+                    ok = false;
+                }
+            }
+            if ok {
             OpenOptions::new().create(true).write(true).open(get_home()+"/.config/eidolon/games/"+&game.name+".json").unwrap().write_all(serde_json::to_string(&game).unwrap().as_bytes()).unwrap();
-            println!("Made shortcut for {}", game.pname);
+            println!("  Made shortcut for {}", game.pname);
+            } else {
+                println!("  {} is in your blocked list", game.pname);
+            }
         }
     }
     pub fn get_games() -> Vec<String> {
@@ -133,7 +144,7 @@ pub mod eidolon {
     }
     pub fn update_itch() {
         if fs::metadata(get_home() + "/.config/itch").is_ok() {
-            println!(">> Reading in itch games");
+            println!(">> Reading in itch.io games");
             let mut icfg = String::new();
             fs::File::open(get_home() + "/.config/itch/preferences.json")
                 .expect("Couldn't open itch config")
@@ -403,7 +414,6 @@ pub mod eidolon {
                     let procname = create_procname(&results.1);
 
                     let pname = results.1.clone();
-                    if fs::metadata(get_home()+"/.config/eidolon/games/"+&procname+".json").is_err() {
                     let command = String::from("steam 'steam://rungameid/")+&results.0+"'";
                     let game = Game {
                         name:procname.clone(),
@@ -412,9 +422,6 @@ pub mod eidolon {
                         typeg:"steam".to_string(),
                     };
                     add_game(game);
-                    } else {
-                        println!("A shortcut has already been made for {}", pname);
-                    }
 
                         let mut i = 0;
                         while i < already.len() {
