@@ -12,6 +12,7 @@ extern crate serde_json;
 mod eid_lib;
 use eid_lib::eidolon;
 fn main() {
+    eidolon::check_games();
     interpret_args();
 }
 fn interpret_args() {
@@ -39,7 +40,7 @@ fn interpret_args() {
                         eidolon::update_itch();
                     },
                     "version" => print_version(),
-                    "add" => eidolon::add_game(&args[2], &args[3], false),
+                    "add" => eidolon::add_game_p(&args[2], &args[3], false),
                     "rm" => eidolon::rm_game(&args[2]),
                     "help" => print_help(),
                     "menu" => show_menu(menu_command, prefix_command),
@@ -47,7 +48,7 @@ fn interpret_args() {
                     "list" => eidolon::list_games(),
                     "imports" => eidolon::imports(&args[2]),
                     "run" => eidolon::run_game(&args[2]),
-                    "wine_add" => eidolon::add_game(&args[2], &args[3], true),
+                    "wine_add" => eidolon::add_game_p(&args[2], &args[3], true),
                     _ => println!("Unknown command. eidolon help for commands."),
                 }
             }
@@ -75,12 +76,7 @@ fn print_version() {
 }
 fn show_menu(menu_command: String, prefix_command:String) {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
-    let mut entries = fs::read_dir(eidolon::get_home() + "/.config/eidolon/games")
-        .expect("Can't read in games")
-        .collect::<Vec<io::Result<DirEntry>>>()
-        .into_iter()
-        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
-        .collect::<Vec<String>>();
+    let mut entries = eidolon::get_games();
     entries.sort_by(|a, b| a.cmp(&b));
     let mut game_list = String::new();
     for entry in entries {
@@ -101,7 +97,7 @@ fn show_menu(menu_command: String, prefix_command:String) {
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if output.status.success() {
             if parsed_output.trim().chars().count() > 0 {
-                Command::new("sh").arg("-c").arg(prefix_command+"~/.config/eidolon/games/"+&String::from_utf8_lossy(&output.stdout).trim()+"/start").spawn().expect("Failed to start game");
+                eidolon::run_game(&String::from_utf8_lossy(&output.stdout).trim());
             } else {
                 println!("No game selected!");
             }
