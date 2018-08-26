@@ -70,9 +70,9 @@ fn check_args_num(num:usize, command:&str) -> bool {
     }
 }
 fn print_version() {
-    println!("Eidolon Game Launcher v1.2.6");
-    println!("Created by Nicholas Hickman");
-    println!("For support, file an issue at https://github.com/nicohman/eidolon or email nico.hickman@gmail.com");
+    println!("Eidolon Game Launcher v1.4.0");
+    println!("Created by nicohman");
+    println!("For support, file an issue at https://github.com/nicohman/eidolon or email nicohman@disroot.org");
 }
 fn show_menu(menu_command: String, prefix_command:String) {
     //Creates a list of all installed games, then pipes them to a dmenu rofi

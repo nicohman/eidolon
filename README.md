@@ -27,7 +27,7 @@ It appears someone is maintaining a package on the [AUR](https://aur.archlinux.o
 `eidolon help` for list of commands:
 ```Commands:
 
-update : updates registry with installed steam games, lutris wine games and itch games
+update : updates registry with installed steam games, lutris wine games and itch games. Note: until itchio launch links work again, this may or may launch the right executable for any given game.
  
 add [name] [file] : adds game to registry
 
