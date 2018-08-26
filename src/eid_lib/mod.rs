@@ -112,11 +112,11 @@ pub mod eidolon {
     }
     pub fn list_games() {
         println!("Currently registered games:");
-        let mut num = 0;
         let entries = get_games();
+        println!("Name - Procname - Type");
         for entry in entries {
-            println!("{} - {}", num, entry);
-            num = num + 1;
+            let game = read_game(entry).unwrap();
+            println!("{} - {} - {}",game.pname,game.name,game.typeg);
         }
     }
     pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
@@ -248,7 +248,7 @@ pub mod eidolon {
         let mut config: Config = serde_json::from_str(&conf_s).unwrap();
         let mut fixed = config.steam_dirs.into_iter();
         config.steam_dirs = fixed
-            .map(|x| String::from(x.as_str().replace("$HOME", &get_home())))
+            .map(|x| String::from(x.as_str().replace("$HOME", &get_home()).replace("~",&get_home())))
             .collect::<Vec<String>>();
         config
     }
