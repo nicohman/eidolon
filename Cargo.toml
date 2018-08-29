@@ -1,7 +1,7 @@
 [package]
 name = "eidolon"
 version = "1.4.0"
-authors = ["nicohman <nico.hickman@gmail.com>"]
+authors = ["nicohman <nicohman@demenses.net>"]
 description="Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu."
 readme="README.md"
 keywords=["gaming", "steam", "games"]
