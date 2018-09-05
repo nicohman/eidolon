@@ -10,13 +10,14 @@ extern crate serde;
 #[macro_use]
 extern crate serde_json;
 mod eid_lib;
-use eid_lib::eidolon;
+use eid_lib::eidolon::*;
 fn main() {
-    eidolon::check_games();
-    interpret_args();
+    check_games();
+    if startup() {
+        interpret_args();
+    }
 }
 fn interpret_args() {
-    if eidolon::startup() {
                 //Matches arguments to their relevant functions
                 let args: Vec<String> = env::args().collect();
                 let command: &str;
@@ -29,30 +30,45 @@ fn interpret_args() {
                         ::std::process::exit(64);
                     }
                 }
-                let config = eidolon::get_config();
+                let config = get_config();
                 let menu_command = config.menu_command;
                 let steam_dirs = config.steam_dirs;
                 let prefix_command = config.prefix_command;
                 match command.as_ref() {
                     "update" => {
-                        eidolon::update_steam(steam_dirs);
-                        eidolon::update_lutris();
-                        eidolon::update_itch();
+                        update_steam(steam_dirs);
+                        update_lutris();
+                        update_itch();
                     },
                     "version" => print_version(),
-                    "add" => eidolon::add_game_p(&args[2], &args[3], false),
-                    "rm" => eidolon::rm_game(&args[2]),
+                    "add" => add_game_p(&args[2], &args[3], false),
+                    "rm" => rm_game(&args[2]),
                     "help" => print_help(),
                     "menu" => show_menu(menu_command, prefix_command),
-                    "import" => eidolon::import(&args[2]),
-                    "list" => eidolon::list_games(),
-                    "imports" => eidolon::imports(&args[2]),
-                    "run" => eidolon::run_game(&args[2]),
-                    "wine_add" => eidolon::add_game_p(&args[2], &args[3], true),
+                    "import" => import(&args[2]),
+                    "list" => list_games(),
+                    "imports" => imports(&args[2]),
+                    "run" => run_game(&args[2]),
+                    "wine_add" => add_game_p(&args[2], &args[3], true),
                     _ => println!("Unknown command. eidolon help for commands."),
                 }
-            }
+            
 }
+fn print_help() {
+    println!("Commands:");
+    println!("update : updates registry with installed steam games and lutris wine games");
+    println!("add [name] [file] : adds game to registry");
+    println!("list : lists installed games");
+    println!("rm [name] : removes game from registry");
+    println!("menu : shows game menu");
+    println!("run [name] : runs named game");
+    println!("import [dir] : attempts to import in game directory just from name of location.");
+    println!("imports [dir] : imports in all game directories within given directory");
+    println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
+    println!("version : displays the current eidolon version and contact info");
+    println!("help : show this screen");
+}
+
 fn check_args_num(num:usize, command:&str) -> bool {
     let need  = match command {
         "add" => 2,
@@ -76,7 +92,7 @@ fn print_version() {
 }
 fn show_menu(menu_command: String, prefix_command:String) {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
-    let mut entries = eidolon::get_games();
+    let mut entries = get_games();
     entries.sort_by(|a, b| a.cmp(&b));
     let mut game_list = String::new();
     for entry in entries {
@@ -97,7 +113,7 @@ fn show_menu(menu_command: String, prefix_command:String) {
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if output.status.success() {
             if parsed_output.trim().chars().count() > 0 {
-                eidolon::run_game(&String::from_utf8_lossy(&output.stdout).trim());
+                run_game(&String::from_utf8_lossy(&output.stdout).trim());
             } else {
                 println!("No game selected!");
             }
@@ -110,19 +126,5 @@ fn show_menu(menu_command: String, prefix_command:String) {
             }
         }
     }
-}
-fn print_help() {
-    println!("Commands:");
-    println!("update : updates registry with installed steam games and lutris wine games");
-    println!("add [name] [file] : adds game to registry");
-    println!("list : lists installed games");
-    println!("rm [name] : removes game from registry");
-    println!("menu : shows game menu");
-    println!("run [name] : runs named game");
-    println!("import [dir] : attempts to import in game directory just from name of location.");
-    println!("imports [dir] : imports in all game directories within given directory");
-    println!("wine_add [name] [.exe] : adds windows exe to be run under wine to the registry");
-    println!("version : displays the current eidolon version and contact info");
-    println!("help : show this screen");
 }
 
