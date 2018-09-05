@@ -1,5 +1,5 @@
 # eidolon
-A conversion of steam_suite to rust with additional features.
+A conversion of steam\_suite to rust with additional features.
 Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu. Simple, fast and lightweight.
 
 ### See it in action
@@ -13,43 +13,39 @@ You'll need [rofi](https://github.com/DaveDavenport/rofi) and [cargo](https://gi
 
 `git clone https://github.com/nicohman/eidolon.git && cd eidolon`
 
-`cargo build --release`
-
-`sudo cp targets/release/eidolon /usr/bin/eidolon`
+`cargo install --path . --force`
 
 Alternatively, check [here](https://github.com/nicohman/eidolon/releases) for a possibly out of date binary.
 
 ### Unofficial packages
 
-It appears someone is maintaining a package on the [AUR](https://aur.archlinux.org/packages/eidolon).
+It appears someone is maintaining a package on the [AUR](https://aur.archlinux.org/packages/eidolon). If anyone else wants to maintain a package somewhere, feel free to! If you tell me about it, I'll even add a link here.
 
 ## Usage
 `eidolon help` for list of commands:
-```Commands:
-
-update : updates registry with installed steam games, lutris wine games and itch games. Note: until itchio launch links work again, this may or may launch the right executable for any given game.
- 
-add [name] [file] : adds game to registry
-
-list : lists all installed games
-
-rm [name] : removes game from registry
-
-run [name] : runs the named game
-
-menu : shows game menu
-
-import [dir] : attempts to import in game directory just from name of location.
-
-imports [dir] : imports in all game directories within given directory
-
-wine_add [name] [.exe] : adds windows exe to be run under wine to the registry
-
-version : displays the current eidolon version and contact info
-
-help : show this screen
-
 ```
+eidolon 
+nicohman <nicohman@demenses.net>
+Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu.
+
+USAGE:
+    eidolon <SUBCOMMAND>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    add       Adds selected file to registry
+    help      Prints this message or the help of the given subcommand(s)
+    import    Attempts to import in game directory from dir path
+    list      Lists installed games
+    menu      Show game menu
+    rm        Remove a game from the registry
+    run       Runs a game by name
+    update    Updates registry with installed steam, lutris wine, and itch games
+```
+
 ## Configuration
 Right now, only three config options exist: menu\_command, prefix\_command and steam\_dirs. The config file is saved in ~/.config/eidolon/config.json, of course in the JSON format.
 
@@ -58,6 +54,7 @@ Right now, only three config options exist: menu\_command, prefix\_command and s
 `steam_dirs` : a |-seperated list of steam install directories, with $HOME replacing the home directory.
 
 `prefix_command` : A command that will be run as a prefix to every game command. Good for optirun or steam runtime launching.
+
 #### Default config file:
 ```
 {
