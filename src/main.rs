@@ -3,6 +3,7 @@ use std::env;
 use std::process::Command;
 use std::fs::DirEntry;
 use std::io;
+extern crate butlerd;
 extern crate regex;
 #[macro_use]
 extern crate serde_derive;

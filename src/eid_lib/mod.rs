@@ -8,6 +8,7 @@ pub mod eidolon {
     use std::env;
     use std::process::Command;
     use std::fs::DirEntry;
+    use butlerd::Butler;
     use std::io::{Error, ErrorKind};
     use std::io;
     use serde_json::Map;
@@ -143,48 +144,37 @@ pub mod eidolon {
         }
     }
     pub fn update_itch() {
-        if fs::metadata(get_home() + "/.config/itch").is_ok() {
+        let btest = Butler::new();
+        if btest.is_ok() {
+            let mut already = get_games().iter_mut().filter(|x| {
+                let read = read_game(x.to_string()).unwrap();
+                &read.typeg == "itch"
+            }).map(|x| x.to_string()).collect::<Vec<String>>();
             println!(">> Reading in itch.io games");
-            let mut icfg = String::new();
-            fs::File::open(get_home() + "/.config/itch/preferences.json")
-                .expect("Couldn't open itch config")
-                .read_to_string(&mut icfg)
-                .unwrap();
-            let mut icfg: ICfg = serde_json::from_str(&icfg).unwrap();
-            let mut idirs = icfg.installLocations;
-            idirs.insert(
-                "appdata".to_string(),
-                json!({
-                    "path": get_home() + "/.config/itch/apps"
-                }),
-                );
-            let mut games = fs::read_dir(get_home() + "/.config/itch/marketdb/caves").unwrap();
-            let mut games = games
-                .map(|x| proc_path(x.unwrap()))
-                .collect::<Vec<String>>();
-            for game in games {
-                let mut r = String::new();
-                fs::File::open(get_home() + "/.config/itch/marketdb/caves/" + &game)
-                    .expect("Couldn't open game file")
-                    .read_to_string(&mut r)
-                    .unwrap();
-                let mut rcfg: IGCfg = serde_json::from_str(&r).unwrap();
-                let mut title = &rcfg.game["title"].as_str().unwrap().to_string();
-                let mut conpath = idirs[&rcfg.installLocation.to_string()]["path"]
-                    .as_str()
-                    .unwrap()
-                    .to_string() + "/" +
-                    rcfg.installFolder.as_str() + "/" +
-                    &rcfg.executables[0].to_string();
-                conpath = conpath.replace(" ", "\\ ");
-                let procn = create_procname(&title);
+            let butler = btest.expect("Couldn't start butler daemon");
+            let caves = butler.fetchall();
+            for cave in caves {
+                let game = cave.game;
+                let name = game.title;
+                let procname = create_procname(&name.clone());
                 let g = Game {
-                    pname:title.clone(),
-                    name:procn.clone(),
-                    command:conpath,
-                    typeg:"exe".to_string(),
+                    pname: name.clone(),
+                    name: procname.clone(),
+                    command: cave.id,
+                    typeg: "itch".to_string()
                 };
                 add_game(g);
+                let mut i = 0;
+                while i < already.len() {
+                    if already[i] == procname {
+                        already.remove(i);
+                    }
+                    i+= 1;
+                }
+            }
+            for left in already {
+                println!("{} has been uninstalled. Removing from registry.", left);
+                rm_game(&left);
             }
         } else {
             println!("Itch.io client not installed!");
@@ -214,7 +204,13 @@ pub mod eidolon {
         let proced = create_procname(name);
         let g = read_game(proced);
         if g.is_ok() {
-            Command::new("sh").arg("-c").arg(g.unwrap().command).output().expect("Couldn't run selected game!");
+            let g = g.unwrap();
+            if &g.typeg != "itch" {
+            Command::new("sh").arg("-c").arg(g.command).output().expect("Couldn't run selected game!");
+            } else {
+                let butler = Butler::new().expect("Has butler been uninstalled?");
+                butler.launch_game(&g.command);
+            }
         } else {
             println!("Couldn't find that game installed. Maybe you misspelled something?");
         }
@@ -435,7 +431,7 @@ pub mod eidolon {
         for al in already {
             let typeg = read_game(al.clone()).unwrap().typeg;
             if typeg == "steam" {
-                                println!("{} has been uninstalled. Removing game from registry.", al);
+                println!("{} has been uninstalled. Removing game from registry.", al);
                 rm_game(&al);
             }
 
