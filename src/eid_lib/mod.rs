@@ -152,7 +152,7 @@ pub mod eidolon {
             }).map(|x| x.to_string()).collect::<Vec<String>>();
             println!(">> Reading in itch.io games");
             let butler = btest.expect("Couldn't start butler daemon");
-            let caves = butler.fetchall();
+            let caves = butler.fetchall().unwrap();
             for cave in caves {
                 let game = cave.game;
                 let name = game.title;
