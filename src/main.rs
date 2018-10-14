@@ -13,10 +13,10 @@ extern crate serde_json;
 #[macro_use]
 extern crate structopt;
 mod args;
-use args::eargs::*;
-mod eid_lib;
+use args::*;
+mod eidolon;
 use structopt::StructOpt;
-use eid_lib::eidolon::*;
+use eidolon::*;
 fn main() {
     check_games();
     if startup() {
@@ -56,7 +56,6 @@ fn show_menu(menu_command: String, prefix_command:String) {
     entries.sort_by(|a, b| a.cmp(&b));
     let mut game_list = String::new();
     for entry in entries {
-        //let entry = proc_path(entry);
         game_list.push_str(&entry);
         game_list.push_str("\n");
     }
