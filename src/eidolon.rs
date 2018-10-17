@@ -41,7 +41,13 @@ pub struct OldConfig {
     pub menu_command: String,
     pub prefix_command: String,
 }
+pub struct SearchResult {
+    pub appid: String,
+    pub name :String,
+    pub outname: String
+}
 impl Config {
+    /// Default config
     fn default() -> Config {
         Config {
             steam_dirs: vec!["$HOME/.local/share/Steam/steamapps".to_string()],
@@ -51,6 +57,7 @@ impl Config {
         }
     }
 }
+/// Checks game registry for old-formatted games, and attempts to convert them
 pub fn check_games() {
     let games = get_games();
     for game in games {
@@ -84,6 +91,7 @@ pub fn check_games() {
         }
     }
 }
+/// Adds a given and configured game to registry
 pub fn add_game(game: Game) {
     if fs::metadata(gd() + &game.name + ".json").is_ok() {
         println!("  Already made a shortcut for {}", game.pname);
@@ -109,6 +117,7 @@ pub fn add_game(game: Game) {
         }
     }
 }
+/// Loads vec of all installed games
 pub fn get_games() -> Vec<String> {
     fs::read_dir(gd())
         .expect("Can't read in games")
@@ -124,6 +133,7 @@ pub fn get_games() -> Vec<String> {
         })
         .collect::<Vec<String>>()
 }
+/// Prints currently installed games
 pub fn list_games() {
     println!("Currently registered games:");
     let entries = get_games();
@@ -133,6 +143,7 @@ pub fn list_games() {
         println!("{} - {} - {}", game.pname, game.name, game.typeg);
     }
 }
+/// Fetches lutris wine games
 pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
     let games = Command::new("lutris").arg("-l").output();
     if games.is_ok() {
@@ -154,6 +165,7 @@ pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
         Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
     }
 }
+/// Searches itch.io games and adds them to game registry
 pub fn update_itch() {
     let btest = Butler::new();
     if btest.is_ok() {
@@ -195,6 +207,7 @@ pub fn update_itch() {
         println!("Itch.io client not installed!");
     }
 }
+/// Adds lutris wine games from get_lutris
 pub fn update_lutris() {
     let lut = get_lutris();
     if lut.is_err() {
@@ -215,6 +228,7 @@ pub fn update_lutris() {
         }
     }
 }
+/// Runs a registered game, given name
 pub fn run_game(name: &str) {
     let proced = create_procname(name);
     let g = read_game(proced);
@@ -234,6 +248,7 @@ pub fn run_game(name: &str) {
         println!("Couldn't find that game installed. Maybe you misspelled something?");
     }
 }
+/// Converts pre-v1.2.7 config to JSON config
 pub fn convert_config() {
     let old = get_config_old();
     let conf = Config {
@@ -255,6 +270,7 @@ pub fn convert_config() {
         .unwrap();
     fs::remove_file(get_home() + "/.config/eidolon/config").unwrap();
 }
+/// Loads in eidolon config file
 pub fn get_config() -> Config {
     let mut conf_s = String::new();
     fs::File::open(get_home() + "/.config/eidolon/config.json")
@@ -274,6 +290,7 @@ pub fn get_config() -> Config {
         .collect::<Vec<String>>();
     config
 }
+/// This parses the config format that eidolon used prior to v1.2.7. This is used to convert the old format into the new JSON-based format when it is detected.
 pub fn get_config_old() -> OldConfig {
     let mut conf = String::new();
     fs::File::open(get_home() + "/.config/eidolon/config")
@@ -303,6 +320,7 @@ pub fn get_config_old() -> OldConfig {
         prefix_command: String::from(prefix_command),
     }
 }
+/// Intializes basic directories and config for the first use
 pub fn init() {
     println!("Beginning config init");
     if fs::metadata(get_home() + "/.config").is_err() {
@@ -322,8 +340,8 @@ pub fn init() {
     ).unwrap();
     println!("Correctly initialized base config.");
 }
+/// Iterates through directory and imports each child directory
 pub fn imports(dir: &str) {
-    //Iterates through directory and imports each child directory
     let entries = fs::read_dir(&dir).expect("Can't read in folder of games");
     println!("Reading in directory: {}", &dir);
     for entry in entries {
@@ -333,8 +351,8 @@ pub fn imports(dir: &str) {
         println!("Finished attempted import on {}", &entry);
     }
 }
+/// Scans a directory for common game formats and adds them.
 pub fn import(dir: &str) {
-    //Scans a directory for common game formats and adds them.
     let mut path = env::current_dir().unwrap();
     let entry_format = &dir.split("/").collect::<Vec<&str>>();
     let real_dir: String = String::from(entry_format[entry_format.len() - 1]);
@@ -345,7 +363,6 @@ pub fn import(dir: &str) {
     let mut found_game = String::new();
     for entry in entries {
         let entry = proc_path(entry.unwrap());
-
         let mut found = true;
         if entry.find(".x86_64").is_some() {
             println!("Found a unity exe. Assuming it is game");
@@ -372,8 +389,8 @@ pub fn import(dir: &str) {
         );
     }
 }
+/// Removes folder of named game
 pub fn rm_game(name: &str) {
-    //Removes folder of named game
     let res = fs::remove_file(String::from(gd() + create_procname(name).as_ref()) + ".json");
     if res.is_ok() {
         println!("Game removed!");
@@ -381,8 +398,8 @@ pub fn rm_game(name: &str) {
         println!("Game did not exist. So, removed?");
     }
 }
+/// Registers executable file as game with given name. Wine argguement indicates whether or not to run this game under wine
 pub fn add_game_p(name: &str, exe: &str, wine: bool) {
-    //Registers executable file as game with given name
     let mut path = env::current_dir().unwrap();
     path.push(exe);
     //Adds pwd to exe path
@@ -417,8 +434,8 @@ pub fn add_game_p(name: &str, exe: &str, wine: bool) {
         add_game(game);
     }
 }
+// /Iterates through steam directories for installed steam games and creates registrations for all
 pub fn update_steam(dirs: Vec<String>) {
-    //Iterates through steam directories for installed steam games and creates registrations for all
     let mut already = get_games();
     for x in &dirs {
         println!(">> Reading in steam library {}", &x);
@@ -429,13 +446,11 @@ pub fn update_steam(dirs: Vec<String>) {
         for entry in entries {
             //Calls search games to get appid and proper name to make the script
             let results = search_games(entry, x.to_owned());
-            if results.1 == "name" {
-                // println!("Could not find game as refrenced by .vdf");
-            } else {
-                let procname = create_procname(&results.1);
-
-                let pname = results.1.clone();
-                let command = String::from("steam 'steam://rungameid/") + &results.0 + "'";
+            if results.is_some() {
+                let results = results.unwrap();
+                let procname = create_procname(&results.name);
+                let pname = results.name.clone();
+                let command = String::from("steam 'steam://rungameid/") + &results.appid + "'";
                 let game = Game {
                     name: procname.clone(),
                     pname: pname.clone(),
@@ -443,7 +458,6 @@ pub fn update_steam(dirs: Vec<String>) {
                     typeg: "steam".to_string(),
                 };
                 add_game(game);
-
                 let mut i = 0;
                 while i < already.len() {
                     if already[i] == procname {
@@ -462,6 +476,7 @@ pub fn update_steam(dirs: Vec<String>) {
         }
     }
 }
+/// Reads in a game's info from a name
 pub fn read_game(name: String) -> Result<Game, String> {
     if fs::metadata(gd() + &name + ".json").is_ok() {
         let mut stri = String::new();
@@ -474,8 +489,8 @@ pub fn read_game(name: String) -> Result<Game, String> {
     }
     return Err("No such game".to_string());
 }
-pub fn create_procname(rawname: &str) -> (String) {
-    //Formats game name into nice-looking underscored name
+/// Formats game name into nice-looking underscored name for continuity with other names
+pub fn create_procname(rawname: &str) -> String {
     let mut basename = String::from(rawname).to_lowercase();
     basename = String::from(basename.trim());
     let reg_white = Regex::new(r"-|\s").unwrap();
@@ -484,8 +499,8 @@ pub fn create_procname(rawname: &str) -> (String) {
     let total_formatted = reg_special.replace_all(&white_formatted, "");
     return String::from(total_formatted);
 }
-pub fn search_games(rawname: String, steamdir: String) -> (String, String, String) {
-    //Searches given steam game directory for installed game with a directory name of [rawname]
+/// Searches given steam game directory for installed game with a directory name of [rawname]
+pub fn search_games(rawname: String, steamdir: String) -> Option<SearchResult> {
     let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
     for entry in entries {
         let entry = entry.unwrap().path();
@@ -513,22 +528,18 @@ pub fn search_games(rawname: String, steamdir: String) -> (String, String, Strin
                             contents.find("name").unwrap() + 8,
                             contents.find("StateFlags").unwrap() - 4,
                         );
-                        return (
-                            String::from(appid),
-                            String::from(name),
-                            String::from(outname),
-                        );
+                        return Some(SearchResult {
+                            appid: String::from(appid),
+                            name: String::from(name),
+                            outname: String::from(outname),
+                        });
                     }
                 }
             }
         }
     }
-    //Return generic defaults
-    return (
-        String::from("appid"),
-        String::from("name"),
-        String::from("outname"),
-    );
+    //Return none if nothing can be found
+    return None;
 }
 pub fn startup() -> bool {
     if check_inited() {
@@ -538,6 +549,7 @@ pub fn startup() -> bool {
         return true;
     }
 }
+/// Check if eidolon has been initialized prior to this run
 pub fn check_inited() -> bool {
     if fs::metadata(get_home() + "/.config/eidolon").is_err() || fs::metadata(gd()).is_err() {
         false
@@ -552,11 +564,12 @@ pub fn check_inited() -> bool {
         }
     }
 }
+/// Converts DirEntry into a fully processed file/directory name
 pub fn proc_path(path: DirEntry) -> String {
-    //Converts DirEntry into a fully processed file/directory name
     let base = path.file_name().into_string().unwrap();
     return base;
 }
+/// Gets current user's home directory
 pub fn get_home() -> String {
     return String::from(env::home_dir().unwrap().to_str().unwrap());
 }
