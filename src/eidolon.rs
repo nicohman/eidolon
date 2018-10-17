@@ -1,18 +1,16 @@
 extern crate regex;
-use std::fs;
-use std::io::prelude::*;
-use std::io::Read;
-use std::fs::OpenOptions;
-use std::os::unix::fs::OpenOptionsExt;
-use std::env;
-use std::process::Command;
-use std::fs::DirEntry;
 use butlerd::Butler;
-use std::io::{Error, ErrorKind};
-use std::io;
-use serde_json::Map;
 use regex::Regex;
 use serde_json;
+use std::env;
+use std::fs;
+use std::fs::DirEntry;
+use std::fs::OpenOptions;
+use std::io;
+use std::io::prelude::*;
+use std::io::Read;
+use std::io::{Error, ErrorKind};
+use std::process::Command;
 fn gd() -> String {
     return get_home() + "/.config/eidolon/games/";
 }
@@ -38,6 +36,11 @@ pub struct Game {
     name: String,
     typeg: String,
 }
+pub struct OldConfig {
+    pub steam_dirs: Vec<String>,
+    pub menu_command: String,
+    pub prefix_command: String,
+}
 impl Config {
     fn default() -> Config {
         Config {
@@ -49,7 +52,7 @@ impl Config {
     }
 }
 pub fn check_games() {
-    let mut games = get_games();
+    let games = get_games();
     for game in games {
         let m = fs::metadata(gd() + &game);
         if m.is_ok() {
@@ -82,10 +85,7 @@ pub fn check_games() {
     }
 }
 pub fn add_game(game: Game) {
-    if fs::metadata(
-        gd()+ &game.name + ".json",
-    ).is_ok()
-    {
+    if fs::metadata(gd() + &game.name + ".json").is_ok() {
         println!("  Already made a shortcut for {}", game.pname);
     } else {
         let mut ok = true;
@@ -99,9 +99,7 @@ pub fn add_game(game: Game) {
             OpenOptions::new()
                 .create(true)
                 .write(true)
-                .open(
-                    gd() + &game.name + ".json",
-                )
+                .open(gd() + &game.name + ".json")
                 .unwrap()
                 .write_all(serde_json::to_string(&game).unwrap().as_bytes())
                 .unwrap();
@@ -117,10 +115,12 @@ pub fn get_games() -> Vec<String> {
         .collect::<Vec<io::Result<DirEntry>>>()
         .into_iter()
         .map(|entry| {
-            entry.unwrap().file_name().into_string().unwrap().replace(
-                ".json",
-                "",
-            )
+            entry
+                .unwrap()
+                .file_name()
+                .into_string()
+                .unwrap()
+                .replace(".json", "")
         })
         .collect::<Vec<String>>()
 }
@@ -139,16 +139,14 @@ pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
         let games = games.unwrap();
         if games.status.success() {
             let games_list = String::from_utf8_lossy(&games.stdout);
-            Ok(
-                games_list
-                    .lines()
-                    .filter(|x| x.find("wine").is_some())
-                    .map(|x| {
-                        let n = x.split("|").collect::<Vec<&str>>();
-                        (String::from(n[0].trim()), String::from(n[1].trim()))
-                    })
-                    .collect::<Vec<(String, String)>>(),
-            )
+            Ok(games_list
+                .lines()
+                .filter(|x| x.find("wine").is_some())
+                .map(|x| {
+                    let n = x.split("|").collect::<Vec<&str>>();
+                    (String::from(n[0].trim()), String::from(n[1].trim()))
+                })
+                .collect::<Vec<(String, String)>>())
         } else {
             Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
         }
@@ -239,12 +237,13 @@ pub fn run_game(name: &str) {
 pub fn convert_config() {
     let old = get_config_old();
     let conf = Config {
-        steam_dirs: old.0
+        steam_dirs: old
+            .steam_dirs
             .into_iter()
             .map(|x| String::from(x))
             .collect::<Vec<String>>(),
-        menu_command: String::from(old.1),
-        prefix_command: String::from(old.2),
+        menu_command: String::from(old.menu_command),
+        prefix_command: String::from(old.prefix_command),
         blocked: default_blocked(),
     };
     OpenOptions::new()
@@ -263,18 +262,19 @@ pub fn get_config() -> Config {
         .read_to_string(&mut conf_s)
         .unwrap();
     let mut config: Config = serde_json::from_str(&conf_s).unwrap();
-    let mut fixed = config.steam_dirs.into_iter();
+    let fixed = config.steam_dirs.into_iter();
     config.steam_dirs = fixed
         .map(|x| {
-            String::from(x.as_str().replace("$HOME", &get_home()).replace(
-                "~",
-                &get_home(),
-            ))
+            String::from(
+                x.as_str()
+                    .replace("$HOME", &get_home())
+                    .replace("~", &get_home()),
+            )
         })
         .collect::<Vec<String>>();
     config
 }
-pub fn get_config_old() -> (Vec<String>, String, String) {
+pub fn get_config_old() -> OldConfig {
     let mut conf = String::new();
     fs::File::open(get_home() + "/.config/eidolon/config")
         .expect("Couldn't read config")
@@ -285,9 +285,7 @@ pub fn get_config_old() -> (Vec<String>, String, String) {
     let steam_vec = Regex::new(r"(?:([^\|\s]+)\|)")
         .expect("Couldn't create regex")
         .captures_iter(steam_dirs)
-        .map(|x| {
-            String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home()))
-        })
+        .map(|x| String::from(x.get(1).unwrap().as_str().replace("$HOME", &get_home())))
         .collect::<Vec<String>>();
     let menu_command_base = String::from(conf.next().unwrap());
     let prefix_command_bool = conf.next();
@@ -299,11 +297,11 @@ pub fn get_config_old() -> (Vec<String>, String, String) {
         prefix_command = " "
     }
     let menu_command = menu_command_base.split('|').collect::<Vec<&str>>()[1];
-    (
-        steam_vec,
-        String::from(menu_command),
-        String::from(prefix_command),
-    )
+    OldConfig {
+        steam_dirs: steam_vec,
+        menu_command: String::from(menu_command),
+        prefix_command: String::from(prefix_command),
+    }
 }
 pub fn init() {
     println!("Beginning config init");
@@ -372,19 +370,13 @@ pub fn import(dir: &str) {
         println!(
             "Could not find recognizable game exe. You will have to manually specify using eidolon add [name] [exe]"
         );
-
     }
 }
 pub fn rm_game(name: &str) {
     //Removes folder of named game
-    let res = fs::remove_file(
-        String::from(
-            gd() + create_procname(name).as_ref(),
-        ) + ".json",
-    );
+    let res = fs::remove_file(String::from(gd() + create_procname(name).as_ref()) + ".json");
     if res.is_ok() {
         println!("Game removed!");
-
     } else {
         println!("Game did not exist. So, removed?");
     }
@@ -409,11 +401,12 @@ pub fn add_game_p(name: &str, exe: &str, wine: bool) {
             start.push_str(&winestr);
         }
         let command = String::from(
-            start +
-                &(path.into_os_string().into_string().unwrap().replace(
-                    " ",
-                    "\\ ",
-                )),
+            start
+                + &(path
+                    .into_os_string()
+                    .into_string()
+                    .unwrap()
+                    .replace(" ", "\\ ")),
         );
         let game = Game {
             pname: pname.to_string(),
@@ -467,7 +460,6 @@ pub fn update_steam(dirs: Vec<String>) {
             println!("{} has been uninstalled. Removing game from registry.", al);
             rm_game(&al);
         }
-
     }
 }
 pub fn read_game(name: String) -> Result<Game, String> {
@@ -477,7 +469,7 @@ pub fn read_game(name: String) -> Result<Game, String> {
             .unwrap()
             .read_to_string(&mut stri)
             .unwrap();
-        let mut g: Game = serde_json::from_str(&stri).unwrap();
+        let g: Game = serde_json::from_str(&stri).unwrap();
         return Ok(g);
     }
     return Err("No such game".to_string());
@@ -501,20 +493,18 @@ pub fn search_games(rawname: String, steamdir: String) -> (String, String, Strin
         if new_entry.find("appmanifest").is_some() {
             let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
             let mut contents = String::new();
-            f.read_to_string(&mut contents).expect(
-                "Could not read appmanifest",
-            );
+            f.read_to_string(&mut contents)
+                .expect("Could not read appmanifest");
             unsafe {
                 if contents.find("installdir").is_some() {
                     //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
                     let outname = contents.slice_unchecked(
-                        contents.find("installdir").expect(
-                            "Couldn't find install dir",
-                        ) + 14,
+                        contents
+                            .find("installdir")
+                            .expect("Couldn't find install dir") + 14,
                         contents.find("LastUpdated").unwrap() - 4,
                     );
                     if outname == rawname {
-
                         let appid = contents.slice_unchecked(
                             contents.find("appid").unwrap() + 9,
                             contents.find("Universe").unwrap() - 4,
@@ -549,9 +539,7 @@ pub fn startup() -> bool {
     }
 }
 pub fn check_inited() -> bool {
-    if fs::metadata(get_home() + "/.config/eidolon").is_err() ||
-        fs::metadata(gd()).is_err()
-    {
+    if fs::metadata(get_home() + "/.config/eidolon").is_err() || fs::metadata(gd()).is_err() {
         false
     } else {
         if fs::metadata(get_home() + "/.config/eidolon/config").is_ok() {

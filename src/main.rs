@@ -1,8 +1,4 @@
-use std::fs;
-use std::env;
 use std::process::Command;
-use std::fs::DirEntry;
-use std::io;
 extern crate butlerd;
 extern crate regex;
 #[macro_use]
@@ -27,7 +23,7 @@ fn interpret_args() {
                 //Matches arguments to their relevant functions
                 let a = Eidolon::from_args();
                 use Eidolon::*;
-                let config = get_config();                
+                let config = get_config();
                 match a {
                     Import { path, multi } => {
                         if multi {
@@ -38,7 +34,7 @@ fn interpret_args() {
                     },
                     Add { name, path, wine } => add_game_p(&name, &path, wine),
                     Rm { game } => rm_game(&game),
-                    Menu {} => show_menu(config.menu_command, config.prefix_command),
+                    Menu {} => show_menu(&config.menu_command),
                     List {} => list_games(),
                     Run { name } => run_game(&name),
                     Update {} => {
@@ -47,10 +43,8 @@ fn interpret_args() {
                         update_itch();
                     }
                 }
-
-            
 }
-fn show_menu(menu_command: String, prefix_command:String) {
+fn show_menu(menu_command: &str) {
     //Creates a list of all installed games, then pipes them to a dmenu rofi
     let mut entries = get_games();
     entries.sort_by(|a, b| a.cmp(&b));
@@ -86,4 +80,3 @@ fn show_menu(menu_command: String, prefix_command:String) {
         }
     }
 }
-
