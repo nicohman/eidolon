@@ -320,7 +320,7 @@ pub fn init() {
             .unwrap()
             .as_bytes(),
     ).unwrap();
-    println!("Correctly initialized base config. Please run again to use eidolon.");
+    println!("Correctly initialized base config.");
 }
 pub fn imports(dir: &str) {
     //Iterates through directory and imports each child directory
@@ -535,7 +535,7 @@ pub fn startup() -> bool {
         true
     } else {
         init();
-        ::std::process::exit(0);
+        return true;
     }
 }
 pub fn check_inited() -> bool {
