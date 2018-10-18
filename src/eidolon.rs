@@ -2,14 +2,9 @@ extern crate regex;
 use butlerd::Butler;
 use regex::Regex;
 use serde_json;
-use std::env;
-use std::fs;
-use std::fs::DirEntry;
-use std::fs::OpenOptions;
-use std::io;
-use std::io::prelude::*;
-use std::io::Read;
-use std::io::{Error, ErrorKind};
+use std::{env,fs,io,process,fmt};
+use std::fs::{DirEntry, OpenOptions};
+use std::io::{prelude::*, Read};
 use std::process::Command;
 fn gd() -> String {
     return get_home() + "/.config/eidolon/games/";
@@ -34,18 +29,36 @@ pub struct Game {
     command: String,
     pname: String,
     name: String,
-    typeg: String,
+    typeg: GameType,
 }
+/// The pre-3.7 config
 pub struct OldConfig {
     pub steam_dirs: Vec<String>,
     pub menu_command: String,
     pub prefix_command: String,
 }
+/// A result from searching for steam games
 pub struct SearchResult {
     pub appid: String,
     pub name :String,
     pub outname: String
 }
+/// An Enum for the different types of games Eidolon can support
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum GameType {
+    Itch,
+    Steam,
+    Lutris,
+    Exe
+}
+impl fmt::Display for GameType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+use GameType::*;
 impl Config {
     /// Default config
     fn default() -> Config {
@@ -72,11 +85,11 @@ pub fn check_games() {
                 let mut commandl = command.lines();
                 commandl.next().unwrap();
                 let mut command = commandl.next().unwrap().to_string();
-                let mut typeg = String::from("exe");
+                let mut typeg = Exe;
                 if command.contains("steam://rungameid") {
-                    typeg = String::from("steam");
+                    typeg = Steam;
                 } else if command.contains("lutris:rungameid") {
-                    typeg = String::from("lutris");
+                    typeg = Lutris;
                 }
                 let mut games = Game {
                     name: game.clone(),
@@ -143,26 +156,26 @@ pub fn list_games() {
         println!("{} - {} - {}", game.pname, game.name, game.typeg);
     }
 }
-/// Fetches lutris wine games
-pub fn get_lutris() -> Result<Vec<(String, String)>, io::Error> {
+/// Fetches lutris wine games and returns a vec of names and lutris ids as tuples
+pub fn get_lutris() -> Result<Vec<(String, String)>, String> {
     let games = Command::new("lutris").arg("-l").output();
     if games.is_ok() {
         let games = games.unwrap();
         if games.status.success() {
             let games_list = String::from_utf8_lossy(&games.stdout);
-            Ok(games_list
+            return Ok(games_list
                 .lines()
                 .filter(|x| x.find("wine").is_some())
                 .map(|x| {
                     let n = x.split("|").collect::<Vec<&str>>();
                     (String::from(n[0].trim()), String::from(n[1].trim()))
                 })
-                .collect::<Vec<(String, String)>>())
+                .collect::<Vec<(String, String)>>());
         } else {
-            Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
+            return Err("Lutris not installed".to_string());
         }
     } else {
-        Err(Error::new(ErrorKind::NotFound, "Lutris not installed"))
+        return Err("Lutris not installed".to_string());
     }
 }
 /// Searches itch.io games and adds them to game registry
@@ -173,13 +186,13 @@ pub fn update_itch() {
             .iter_mut()
             .filter(|x| {
                 let read = read_game(x.to_string()).unwrap();
-                &read.typeg == "itch"
+                read.typeg == Itch
             })
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
         println!(">> Reading in itch.io games");
         let butler = btest.expect("Couldn't start butler daemon");
-        let caves = butler.fetchall().unwrap();
+        let caves = butler.fetchall().expect("Couldn't fetch butler caves");
         for cave in caves {
             let game = cave.game;
             let name = game.title;
@@ -188,7 +201,7 @@ pub fn update_itch() {
                 pname: name.clone(),
                 name: procname.clone(),
                 command: cave.id,
-                typeg: "itch".to_string(),
+                typeg: Itch,
             };
             add_game(g);
             let mut i = 0;
@@ -222,7 +235,7 @@ pub fn update_lutris() {
                 pname: pname.clone(),
                 name: procname,
                 command: command,
-                typeg: "lutris".to_string(),
+                typeg: Lutris,
             };
             add_game(g);
         }
@@ -234,7 +247,7 @@ pub fn run_game(name: &str) {
     let g = read_game(proced);
     if g.is_ok() {
         let g = g.unwrap();
-        if &g.typeg != "itch" {
+        if g.typeg != Itch {
             Command::new("sh")
                 .arg("-c")
                 .arg(g.command)
@@ -429,7 +442,7 @@ pub fn add_game_p(name: &str, exe: &str, wine: bool) {
             pname: pname.to_string(),
             name: name,
             command: command,
-            typeg: "exe".to_string(),
+            typeg: Exe,
         };
         add_game(game);
     }
@@ -455,7 +468,7 @@ pub fn update_steam(dirs: Vec<String>) {
                     name: procname.clone(),
                     pname: pname.clone(),
                     command: command,
-                    typeg: "steam".to_string(),
+                    typeg: Steam,
                 };
                 add_game(game);
                 let mut i = 0;
@@ -470,7 +483,7 @@ pub fn update_steam(dirs: Vec<String>) {
     }
     for al in already {
         let typeg = read_game(al.clone()).unwrap().typeg;
-        if typeg == "steam" {
+        if typeg == Steam {
             println!("{} has been uninstalled. Removing game from registry.", al);
             rm_game(&al);
         }

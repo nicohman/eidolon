@@ -72,7 +72,6 @@ fn show_menu(menu_command: &str) {
             }
         } else {
             if parsed_output.trim().chars().count() > 0 {
-
                 println!("Okay, something went wrong. Your menu command:\n{}\n doesn't work. If you're using the default, have you installed rofi?", &menu_command);
             } else {
                 println!("No game selected!");
