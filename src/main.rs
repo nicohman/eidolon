@@ -8,11 +8,14 @@ extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate structopt;
-mod args;
+pub mod args;
 use args::*;
-mod eidolon;
+pub mod eidolon;
 use structopt::StructOpt;
 use eidolon::*;
+use games::*;
+use auto::*;
+use config::*;
 fn main() {
     check_games();
     if startup() {
@@ -45,7 +48,8 @@ fn interpret_args() {
                 }
 }
 fn show_menu(menu_command: &str) {
-    //Creates a list of all installed games, then pipes them to a dmenu rofi
+    use games::*;
+    // Creates a list of all installed games, then pipes them to a dmenu rofi
     let mut entries = get_games();
     entries.sort_by(|a, b| a.cmp(&b));
     let mut game_list = String::new();
