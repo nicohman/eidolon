@@ -1,7 +1,10 @@
 extern crate regex;
+#[macro_use]
+extern crate serde_derive;
+extern crate butlerd;
 use butlerd::Butler;
 use config::*;
-use serde_json;
+extern crate serde_json;
 use std::fs::{DirEntry, OpenOptions};
 use std::io::{prelude::*, Read};
 use std::process::Command;
@@ -17,8 +20,8 @@ pub struct Game {
 
 /// Module for working directly with the game registry
 pub mod games {
-    use eidolon::{*,helper::*};
-    use GameType::*;
+    use crate::{*,helper::*};
+    use self::GameType::*;
     /// An Enum for the different types of games Eidolon can support
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     #[serde(rename_all = "lowercase")]
@@ -202,8 +205,8 @@ pub mod games {
 
 /// Functions related to automatic scanning and updating of game registry
 pub mod auto {
-    use eidolon::{games::*,helper::*, *};
-    use GameType::*;
+    use crate::{games::*,helper::*, *};
+    use self::GameType::*;
     /// A result from searching for steam games
     pub struct SearchResult {
         pub appid: String,
@@ -433,7 +436,7 @@ pub mod auto {
 }
 /// Functions for working with the config file/formats
 pub mod config {
-    use eidolon::{*,helper::*};
+    use crate::{*,helper::*};
     use regex::Regex;
     /// Eidolon's user config
     #[derive(Serialize, Deserialize, Debug)]
