@@ -123,23 +123,30 @@ pub mod games {
         }
     }
     /// Runs a registered game, given name
-    pub fn run_game(name: &str) {
+    pub fn run_game(name: &str) -> Result<String, String>{
         let proced = create_procname(name);
         let g = read_game(proced);
         if g.is_ok() {
             let g = g.unwrap();
             if g.typeg != Itch {
-                Command::new("sh")
+                let result = Command::new("sh")
                     .arg("-c")
                     .arg(g.command)
                     .output()
                     .expect("Couldn't run selected game!");
+                    if !result.status.success(){
+                        return Err(String::from_utf8_lossy(&result.stderr).into_owned().to_string());
+                    } else {
+                        return Ok(String::from_utf8_lossy(&result.stdout).into_owned().to_string());
+                    }
             } else {
                 let butler = Butler::new().expect("Has butler been uninstalled?");
                 butler.launch_game(&g.command);
+                return Ok("Launched through butler".to_string());
             }
         } else {
             println!("Couldn't find that game installed. Maybe you misspelled something?");
+            Err("Nonexistent".to_string())
         }
     }
     /// Removes folder of named game
