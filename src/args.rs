@@ -9,6 +9,8 @@ pub enum Eidolon {
         path: String,
         #[structopt(short = "w", long = "wine")]
         wine: bool,
+        #[structopt(short = "d", long = "dolphin")]
+        dolphin:bool
     },
     #[structopt(name = "menu", about = "Show game menu")]
     Menu {},

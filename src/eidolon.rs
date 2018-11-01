@@ -12,10 +12,10 @@ use std::{env, fmt, fs, io};
 /// Represents a game registered in eidolon
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Game {
-    command: String,
-    pname: String,
-    name: String,
-    typeg: games::GameType,
+    pub command: String,
+    pub pname: String,
+    pub name: String,
+    pub typeg: games::GameType,
 }
 
 /// Module for working directly with the game registry
@@ -30,6 +30,7 @@ pub mod games {
         Steam,
         Lutris,
         Exe,
+        Dolphin
     }
     impl fmt::Display for GameType {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -128,15 +129,21 @@ pub mod games {
         let g = read_game(proced);
         if g.is_ok() {
             let g = g.unwrap();
-            if g.typeg != Itch {
-                Command::new("sh")
-                    .arg("-c")
-                    .arg(g.command)
-                    .output()
-                    .expect("Couldn't run selected game!");
-            } else {
-                let butler = Butler::new().expect("Has butler been uninstalled?");
-                butler.launch_game(&g.command);
+            match g.typeg {
+                Itch =>  {
+                    let butler = Butler::new().expect("Has butler been uninstalled?");
+                    butler.launch_game(&g.command);
+                },
+                Dolphin => {
+                    Command::new("dolphin-emu-cli").arg(g.command).output().expect("Couldn't run dolphin game");
+                },
+                _ => {
+                    Command::new("sh")
+                        .arg("-c")
+                        .arg(g.command)
+                        .output()
+                        .expect("Couldn't run selected game!");
+                }
             }
         } else {
             println!("Couldn't find that game installed. Maybe you misspelled something?");

@@ -11,41 +11,58 @@ extern crate structopt;
 pub mod args;
 use args::*;
 extern crate libeidolon;
-use structopt::StructOpt;
-use libeidolon::*;
-use games::*;
 use auto::*;
 use config::*;
+use games::*;
+use libeidolon::*;
+use structopt::StructOpt;
 fn main() {
-    check_games();
     if startup() {
+        check_games();
         interpret_args();
     }
 }
 fn interpret_args() {
-                //Matches arguments to their relevant functions
-                let a = Eidolon::from_args();
-                use Eidolon::*;
-                let config = get_config();
-                match a {
-                    Import { path, multi } => {
-                        if multi {
-                            imports(&path);
-                        } else {
-                            import(&path);
-                        }
-                    },
-                    Add { name, path, wine } => add_game_p(&name, &path, wine),
-                    Rm { game } => rm_game(&game),
-                    Menu {} => show_menu(&config.menu_command),
-                    List {} => list_games(),
-                    Run { name } => run_game(&name),
-                    Update {} => {
-                        update_steam(config.steam_dirs);
-                        update_lutris();
-                        update_itch();
-                    }
-                }
+    //Matches arguments to their relevant functions
+    let a = Eidolon::from_args();
+    use Eidolon::*;
+    let config = get_config();
+    match a {
+        Import { path, multi } => {
+            if multi {
+                imports(&path);
+            } else {
+                import(&path);
+            }
+        }
+        Add {
+            name,
+            path,
+            wine,
+            dolphin,
+        } => {
+            if !dolphin {
+                add_game_p(&name, &path, wine);
+            } else {
+                let dgame = Game {
+                    command: path,
+                    pname: name.clone(),
+                    name: helper::create_procname(&name),
+                    typeg: GameType::Dolphin
+                };
+                add_game(dgame);
+            }
+        }
+        Rm { game } => rm_game(&game),
+        Menu {} => show_menu(&config.menu_command),
+        List {} => list_games(),
+        Run { name } => run_game(&name),
+        Update {} => {
+            update_steam(config.steam_dirs);
+            update_lutris();
+            update_itch();
+        }
+    }
 }
 fn show_menu(menu_command: &str) {
     use games::*;
@@ -60,7 +77,14 @@ fn show_menu(menu_command: &str) {
     game_list = String::from(game_list.trim());
     if game_list.lines().count() <= 0 {
         println!("No games added. Either run eidolon update or add games manually.");
-        Command::new("sh").arg("-c").arg("notify-send").arg(String::from("'No games added. Either run eidolon update or add games manually.'")).output().expect("Couldn't send notification");
+        Command::new("sh")
+            .arg("-c")
+            .arg("notify-send")
+            .arg(String::from(
+                "'No games added. Either run eidolon update or add games manually.'",
+            ))
+            .output()
+            .expect("Couldn't send notification");
     } else {
         let output = Command::new("sh")
             .arg("-c")
