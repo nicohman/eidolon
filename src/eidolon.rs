@@ -20,8 +20,8 @@ pub struct Game {
 
 /// Module for working directly with the game registry
 pub mod games {
-    use crate::{*,helper::*};
     use self::GameType::*;
+    use crate::{helper::*, *};
     /// An Enum for the different types of games Eidolon can support
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     #[serde(rename_all = "lowercase")]
@@ -30,7 +30,7 @@ pub mod games {
         Steam,
         Lutris,
         Exe,
-        Dolphin
+        Dolphin,
     }
     impl fmt::Display for GameType {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -124,29 +124,52 @@ pub mod games {
         }
     }
     /// Runs a registered game, given name
-    pub fn run_game(name: &str) {
+    pub fn run_game(name: &str) -> Result<String, String> {
         let proced = create_procname(name);
         let g = read_game(proced);
         if g.is_ok() {
             let g = g.unwrap();
             match g.typeg {
-                Itch =>  {
+                Itch => {
                     let butler = Butler::new().expect("Has butler been uninstalled?");
                     butler.launch_game(&g.command);
-                },
+                    return Ok("Launched through butler".to_string());
+                }
                 Dolphin => {
-                    Command::new("dolphin-emu-cli").arg(g.command).output().expect("Couldn't run dolphin game");
-                },
+                    let result = Command::new("dolphin-emu-cli")
+                        .arg(g.command)
+                        .output()
+                        .expect("Couldn't run dolphin game");
+                    if !result.status.success() {
+                        return Err(String::from_utf8_lossy(&result.stderr)
+                            .into_owned()
+                            .to_string());
+                    } else {
+                        return Ok(String::from_utf8_lossy(&result.stdout)
+                            .into_owned()
+                            .to_string());
+                    }
+                }
                 _ => {
-                    Command::new("sh")
+                    let result = Command::new("sh")
                         .arg("-c")
                         .arg(g.command)
                         .output()
                         .expect("Couldn't run selected game!");
+                    if !result.status.success() {
+                        return Err(String::from_utf8_lossy(&result.stderr)
+                            .into_owned()
+                            .to_string());
+                    } else {
+                        return Ok(String::from_utf8_lossy(&result.stdout)
+                            .into_owned()
+                            .to_string());
+                    }
                 }
             }
         } else {
             println!("Couldn't find that game installed. Maybe you misspelled something?");
+            Err("Nonexistent".to_string())
         }
     }
     /// Removes folder of named game
@@ -212,8 +235,8 @@ pub mod games {
 
 /// Functions related to automatic scanning and updating of game registry
 pub mod auto {
-    use crate::{games::*,helper::*, *};
     use self::GameType::*;
+    use crate::{games::*, helper::*, *};
     /// A result from searching for steam games
     pub struct SearchResult {
         pub appid: String,
@@ -443,7 +466,7 @@ pub mod auto {
 }
 /// Functions for working with the config file/formats
 pub mod config {
-    use crate::{*,helper::*};
+    use crate::{helper::*, *};
     use regex::Regex;
     /// Eidolon's user config
     #[derive(Serialize, Deserialize, Debug)]
@@ -569,7 +592,8 @@ pub mod config {
             serde_json::to_string(&Config::default())
                 .unwrap()
                 .as_bytes(),
-        ).unwrap();
+        )
+        .unwrap();
         println!("Correctly initialized base config.");
     }
     /// Checks if eidolon has been inited. If it hasn't, tries to init and returns false if that fails.
@@ -603,9 +627,9 @@ pub mod config {
 }
 /// A set of helper functions commonly used by eidolon
 pub mod helper {
-    use std::fs::DirEntry;
     use regex::Regex;
     use std::env;
+    use std::fs::DirEntry;
     /// Formats game name into nice-looking underscored name for continuity with other names
     pub fn create_procname(rawname: &str) -> String {
         let mut basename = String::from(rawname).to_lowercase();

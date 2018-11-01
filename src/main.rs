@@ -16,6 +16,9 @@ use config::*;
 use games::*;
 use libeidolon::*;
 use structopt::StructOpt;
+use std::fs::File;
+use std::io::Write;
+use std::fs;
 fn main() {
     if startup() {
         check_games();
@@ -56,7 +59,9 @@ fn interpret_args() {
         Rm { game } => rm_game(&game),
         Menu {} => show_menu(&config.menu_command),
         List {} => list_games(),
-        Run { name } => run_game(&name),
+        Run { name } => {
+            run_game(&name);
+        },
         Update {} => {
             update_steam(config.steam_dirs);
             update_lutris();
@@ -77,14 +82,7 @@ fn show_menu(menu_command: &str) {
     game_list = String::from(game_list.trim());
     if game_list.lines().count() <= 0 {
         println!("No games added. Either run eidolon update or add games manually.");
-        Command::new("sh")
-            .arg("-c")
-            .arg("notify-send")
-            .arg(String::from(
-                "'No games added. Either run eidolon update or add games manually.'",
-            ))
-            .output()
-            .expect("Couldn't send notification");
+        notify("No games added. Either run eidolon update or add games manually.");
     } else {
         let output = Command::new("sh")
             .arg("-c")
@@ -94,7 +92,18 @@ fn show_menu(menu_command: &str) {
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if output.status.success() {
             if parsed_output.trim().chars().count() > 0 {
-                run_game(&String::from_utf8_lossy(&output.stdout).trim());
+                let res  = run_game(&String::from_utf8_lossy(&output.stdout).trim());
+                if res.is_err(){
+                    let stderr = res.err().unwrap();
+                    if &stderr.clone() != "Nonexistent"{
+                        println!("Game crashed. Stderr: \n{}",stderr);
+                        notify("Game crashed. Stderr written to /tmp/crash_eidolon.log.");
+                        fs::remove_file("/tmp/crash_eidolon.log");
+                        File::create("/tmp/crash_eidolon.log").unwrap().write_all(stderr.as_bytes()).expect("Couldn't write");
+                    } else {
+                        notify("Could not find game of that name.");
+                    }
+                }
             } else {
                 println!("No game selected!");
             }
@@ -106,4 +115,7 @@ fn show_menu(menu_command: &str) {
             }
         }
     }
+}
+fn notify(notification: &str){
+    Command::new("notify-send").arg(String::from(notification)).output().expect("Couldn't send notification");
 }
