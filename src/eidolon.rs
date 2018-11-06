@@ -124,8 +124,8 @@ pub mod games {
         }
     }
     /// Runs a registered game, given name
-    pub fn run_game(name: &str) -> Result<String, String> {
-        let proced = create_procname(name);
+    pub fn run_game<N>(name: N) -> Result<String, String> where N: Into<String> {
+        let proced = create_procname(name.into());
         let g = read_game(proced);
         if g.is_ok() {
             let g = g.unwrap();
@@ -173,7 +173,7 @@ pub mod games {
         }
     }
     /// Removes folder of named game
-    pub fn rm_game(name: &str) {
+    pub fn rm_game<N>(name: N) where N: Into<String> {
         let res = fs::remove_file(String::from(gd() + create_procname(name).as_ref()) + ".json");
         if res.is_ok() {
             println!("Game removed!");
@@ -182,12 +182,13 @@ pub mod games {
         }
     }
     /// Registers executable file as game with given name. Wine argguement indicates whether or not to run this game under wine
-    pub fn add_game_p(name: &str, exe: &str, wine: bool) {
+    pub fn add_game_p<N>(name: N, exe: N, wine: bool) where N: Into<String> {
+        let (name, exe) = (name.into(),exe.into());
         let mut path = env::current_dir().unwrap();
-        path.push(exe);
+        path.push(exe.clone());
         //Adds pwd to exe path
+        let name = create_procname(name.as_str());
         let pname = name.clone();
-        let name = create_procname(name);
         if fs::metadata(gd() + &name + ".json").is_ok() {
             println!("A shortcut has already been made for {}", pname);
         } else {
@@ -219,7 +220,8 @@ pub mod games {
     }
 
     /// Reads in a game's info from a name
-    pub fn read_game(name: String) -> Result<Game, String> {
+    pub fn read_game<N>(name: N) -> Result<Game, String> where N: Into<String> {
+        let name = name.into();
         if fs::metadata(gd() + &name + ".json").is_ok() {
             let mut stri = String::new();
             fs::File::open(gd() + &name + ".json")
@@ -284,9 +286,9 @@ pub mod auto {
             for cave in caves {
                 let game = cave.game;
                 let name = game.title;
-                let procname = create_procname(&name.clone());
+                let procname = create_procname(name.as_str());
                 let g = Game {
-                    pname: name.clone(),
+                    pname: name,
                     name: procname.clone(),
                     command: cave.id,
                     typeg: Itch,
@@ -302,7 +304,7 @@ pub mod auto {
             }
             for left in already {
                 println!("{} has been uninstalled. Removing from registry.", left);
-                rm_game(&left);
+                rm_game(left);
             }
         } else {
             println!("Itch.io client not installed!");
@@ -322,8 +324,8 @@ pub mod auto {
                 let results = search_games(entry, x.to_owned());
                 if results.is_some() {
                     let results = results.unwrap();
-                    let procname = create_procname(&results.name);
-                    let pname = results.name.clone();
+                    let procname = create_procname(results.name.as_str());
+                    let pname = results.name;
                     let command = String::from("steam 'steam://rungameid/") + &results.appid + "'";
                     let game = Game {
                         name: procname.clone(),
@@ -346,7 +348,7 @@ pub mod auto {
             let typeg = read_game(al.clone()).unwrap().typeg;
             if typeg == Steam {
                 println!("{} has been uninstalled. Removing game from registry.", al);
-                rm_game(&al);
+                rm_game(al);
             }
         }
     }
@@ -358,11 +360,11 @@ pub mod auto {
         } else {
             println!(">> Reading in lutris wine games");
             for game in lut.unwrap() {
-                let procname = create_procname(&game.1);
+                let procname = create_procname(game.1.as_str());
                 let pname = game.1.clone();
                 let command = String::from("lutris lutris:rungameid/") + &game.0;
                 let g = Game {
-                    pname: pname.clone(),
+                    pname: pname,
                     name: procname,
                     command: command,
                     typeg: Lutris,
@@ -372,8 +374,9 @@ pub mod auto {
         }
     }
     /// Searches given steam game directory for installed game with a directory name of [rawname]
-    pub fn search_games(rawname: String, steamdir: String) -> Option<SearchResult> {
-        let entries = fs::read_dir(&steamdir).expect("Can't read installed steam games");
+    pub fn search_games<N>(rawname: N, steamdir: N) -> Option<SearchResult> where N: Into<String> {
+        let (rawname, steamdir) = (rawname.into(), steamdir.into());
+        let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
         for entry in entries {
             let entry = entry.unwrap().path();
             let new_entry = entry.into_os_string().into_string().unwrap();
@@ -415,24 +418,26 @@ pub mod auto {
         return None;
     }
     /// Iterates through directory and imports each child directory
-    pub fn imports(dir: &str) {
+    pub fn imports<N>(dir: N) where N: Into<String> {
+        let dir = dir.into();
         let entries = fs::read_dir(&dir).expect("Can't read in folder of games");
-        println!("Reading in directory: {}", &dir);
+        println!("Reading in directory: {}", dir);
         for entry in entries {
             let entry = proc_path(entry.unwrap());
             println!("Attempting import on {}", &entry);
-            import(&entry);
+            import(entry.as_str());
             println!("Finished attempted import on {}", &entry);
         }
     }
     /// Scans a directory for common game formats and adds them.
-    pub fn import(dir: &str) {
+    pub fn import<N>(dir: N) where N: Into<String> {
+        let dir = dir.into();
         let mut path = env::current_dir().unwrap();
         let entry_format = &dir.split("/").collect::<Vec<&str>>();
         let real_dir: String = String::from(entry_format[entry_format.len() - 1]);
-        let procname = create_procname(&real_dir);
+        let procname = create_procname(real_dir);
         println!("Creating game registry named {}.", procname);
-        path.push(&dir);
+        path.push(dir.clone());
         let entries = fs::read_dir(&path).expect("Can't read in game folder");
         let mut found_game = String::new();
         for entry in entries {
@@ -453,8 +458,8 @@ pub mod auto {
         }
         if found_game.len() > 0 {
             add_game_p(
-                &procname,
-                &(path.into_os_string().into_string().unwrap() + "/" + &found_game),
+                procname,
+                path.into_os_string().into_string().unwrap() + "/" + &found_game,
                 false,
             );
         } else {
@@ -631,8 +636,8 @@ pub mod helper {
     use std::env;
     use std::fs::DirEntry;
     /// Formats game name into nice-looking underscored name for continuity with other names
-    pub fn create_procname(rawname: &str) -> String {
-        let mut basename = String::from(rawname).to_lowercase();
+    pub fn create_procname<N>(rawname: N) -> String where N: Into<String> {
+        let mut basename = String::from(rawname.into()).to_lowercase();
         basename = String::from(basename.trim());
         let reg_white = Regex::new(r"-|\s").unwrap();
         let reg_special = Regex::new(r"'|™|:").unwrap();

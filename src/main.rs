@@ -1,10 +1,8 @@
 use std::process::Command;
 extern crate butlerd;
 extern crate regex;
-#[macro_use]
 extern crate serde_derive;
 extern crate serde;
-#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate structopt;
@@ -33,9 +31,9 @@ fn interpret_args() {
     match a {
         Import { path, multi } => {
             if multi {
-                imports(&path);
+                imports(path);
             } else {
-                import(&path);
+                import(path);
             }
         }
         Add {
@@ -45,22 +43,25 @@ fn interpret_args() {
             dolphin,
         } => {
             if !dolphin {
-                add_game_p(&name, &path, wine);
+                add_game_p(name, path, wine);
             } else {
                 let dgame = Game {
                     command: path,
                     pname: name.clone(),
-                    name: helper::create_procname(&name),
+                    name: helper::create_procname(name),
                     typeg: GameType::Dolphin
                 };
                 add_game(dgame);
             }
         }
-        Rm { game } => rm_game(&game),
+        Rm { game } => rm_game(game),
         Menu {} => show_menu(&config.menu_command),
         List {} => list_games(),
         Run { name } => {
-            run_game(&name);
+            let res = run_game(name);
+            if res.is_err(){
+                println!("Game crashed. Stder:\n{}", res.err().unwrap());
+            }
         },
         Update {} => {
             update_steam(config.steam_dirs);
@@ -92,7 +93,7 @@ fn show_menu(menu_command: &str) {
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if output.status.success() {
             if parsed_output.trim().chars().count() > 0 {
-                let res  = run_game(&String::from_utf8_lossy(&output.stdout).trim());
+                let res  = run_game(String::from_utf8_lossy(&output.stdout).trim());
                 if res.is_err(){
                     let stderr = res.err().unwrap();
                     if &stderr.clone() != "Nonexistent"{
