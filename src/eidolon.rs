@@ -124,7 +124,10 @@ pub mod games {
         }
     }
     /// Runs a registered game, given name
-    pub fn run_game<N>(name: N) -> Result<String, String> where N: Into<String> {
+    pub fn run_game<N>(name: N) -> Result<String, String>
+    where
+        N: Into<String>,
+    {
         let proced = create_procname(name.into());
         let g = read_game(proced);
         if g.is_ok() {
@@ -173,7 +176,10 @@ pub mod games {
         }
     }
     /// Removes folder of named game
-    pub fn rm_game<N>(name: N) where N: Into<String> {
+    pub fn rm_game<N>(name: N)
+    where
+        N: Into<String>,
+    {
         let res = fs::remove_file(String::from(gd() + create_procname(name).as_ref()) + ".json");
         if res.is_ok() {
             println!("Game removed!");
@@ -182,8 +188,11 @@ pub mod games {
         }
     }
     /// Registers executable file as game with given name. Wine argguement indicates whether or not to run this game under wine
-    pub fn add_game_p<N>(name: N, exe: N, wine: bool) where N: Into<String> {
-        let (name, exe) = (name.into(),exe.into());
+    pub fn add_game_p<N>(name: N, exe: N, wine: bool)
+    where
+        N: Into<String>,
+    {
+        let (name, exe) = (name.into(), exe.into());
         let mut path = env::current_dir().unwrap();
         path.push(exe.clone());
         //Adds pwd to exe path
@@ -220,7 +229,10 @@ pub mod games {
     }
 
     /// Reads in a game's info from a name
-    pub fn read_game<N>(name: N) -> Result<Game, String> where N: Into<String> {
+    pub fn read_game<N>(name: N) -> Result<Game, String>
+    where
+        N: Into<String>,
+    {
         let name = name.into();
         if fs::metadata(gd() + &name + ".json").is_ok() {
             let mut stri = String::new();
@@ -270,41 +282,45 @@ pub mod auto {
 
     /// Searches itch.io games and adds them to game registry
     pub fn update_itch() {
-        let btest = Butler::new();
-        if btest.is_ok() {
-            let mut already = get_games()
-                .iter_mut()
-                .filter(|x| {
-                    let read = read_game(x.to_string()).unwrap();
-                    read.typeg == Itch
-                })
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>();
-            println!(">> Reading in itch.io games");
-            let butler = btest.expect("Couldn't start butler daemon");
-            let caves = butler.fetchall().expect("Couldn't fetch butler caves");
-            for cave in caves {
-                let game = cave.game;
-                let name = game.title;
-                let procname = create_procname(name.as_str());
-                let g = Game {
-                    pname: name,
-                    name: procname.clone(),
-                    command: cave.id,
-                    typeg: Itch,
-                };
-                add_game(g);
-                let mut i = 0;
-                while i < already.len() {
-                    if already[i] == procname {
-                        already.remove(i);
+        if fs::metadata(get_home() + "/.config/itch").is_ok() {
+            let btest = Butler::new();
+            if btest.is_ok() {
+                let mut already = get_games()
+                    .iter_mut()
+                    .filter(|x| {
+                        let read = read_game(x.to_string()).unwrap();
+                        read.typeg == Itch
+                    })
+                    .map(|x| x.to_string())
+                    .collect::<Vec<String>>();
+                println!(">> Reading in itch.io games");
+                let butler = btest.expect("Couldn't start butler daemon");
+                let caves = butler.fetchall().expect("Couldn't fetch butler caves");
+                for cave in caves {
+                    let game = cave.game;
+                    let name = game.title;
+                    let procname = create_procname(name.as_str());
+                    let g = Game {
+                        pname: name,
+                        name: procname.clone(),
+                        command: cave.id,
+                        typeg: Itch,
+                    };
+                    add_game(g);
+                    let mut i = 0;
+                    while i < already.len() {
+                        if already[i] == procname {
+                            already.remove(i);
+                        }
+                        i += 1;
                     }
-                    i += 1;
                 }
-            }
-            for left in already {
-                println!("{} has been uninstalled. Removing from registry.", left);
-                rm_game(left);
+                for left in already {
+                    println!("{} has been uninstalled. Removing from registry.", left);
+                    rm_game(left);
+                }
+            } else {
+                println!("Itch.io client not installed!");
             }
         } else {
             println!("Itch.io client not installed!");
@@ -374,7 +390,10 @@ pub mod auto {
         }
     }
     /// Searches given steam game directory for installed game with a directory name of [rawname]
-    pub fn search_games<N>(rawname: N, steamdir: N) -> Option<SearchResult> where N: Into<String> {
+    pub fn search_games<N>(rawname: N, steamdir: N) -> Option<SearchResult>
+    where
+        N: Into<String>,
+    {
         let (rawname, steamdir) = (rawname.into(), steamdir.into());
         let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
         for entry in entries {
@@ -418,7 +437,10 @@ pub mod auto {
         return None;
     }
     /// Iterates through directory and imports each child directory
-    pub fn imports<N>(dir: N) where N: Into<String> {
+    pub fn imports<N>(dir: N)
+    where
+        N: Into<String>,
+    {
         let dir = dir.into();
         let entries = fs::read_dir(&dir).expect("Can't read in folder of games");
         println!("Reading in directory: {}", dir);
@@ -430,7 +452,10 @@ pub mod auto {
         }
     }
     /// Scans a directory for common game formats and adds them.
-    pub fn import<N>(dir: N) where N: Into<String> {
+    pub fn import<N>(dir: N)
+    where
+        N: Into<String>,
+    {
         let dir = dir.into();
         let mut path = env::current_dir().unwrap();
         let entry_format = &dir.split("/").collect::<Vec<&str>>();
@@ -636,7 +661,10 @@ pub mod helper {
     use std::env;
     use std::fs::DirEntry;
     /// Formats game name into nice-looking underscored name for continuity with other names
-    pub fn create_procname<N>(rawname: N) -> String where N: Into<String> {
+    pub fn create_procname<N>(rawname: N) -> String
+    where
+        N: Into<String>,
+    {
         let mut basename = String::from(rawname.into()).to_lowercase();
         basename = String::from(basename.trim());
         let reg_white = Regex::new(r"-|\s").unwrap();
