@@ -1,0 +1,21 @@
+image: archlinux
+packages:
+  - cargo
+  - cmake
+  - fontconfig
+  - rsync
+  - python3
+secrets:
+  - 89991b16-705b-4276-9178-bfc81c7fdd28
+environment:
+  deploy: nicohman@demenses.net
+sources:
+  - https://git.sr.ht/~nicohman/eidolon
+tasks:
+  - build: |
+      cd eidolon
+      cargo build --release
+  - deploy: |
+      cd eidolon/target/release
+      sshopts="ssh -o StrictHostKeyChecking=no"
+      rsync --rsh="$sshopts" -rP eidolon $deploy:/home/nicohman/ravenserver/public/static/eidolon-nightly
