@@ -15,7 +15,7 @@ You'll need [rofi](https://github.com/DaveDavenport/rofi) and [cargo](https://gi
 
 `cargo install --path . --force`
 
-Alternatively, check [here](https://github.com/nicohman/eidolon/releases) for a possibly out of date binary.
+Alternatively, check [here](https://github.com/nicohman/eidolon/releases) for a possibly out of date binary. In addition, you can download a version built from the latest git commit at [my website](https://demenses.net/downloads)
 
 ### Unofficial packages
 
@@ -24,7 +24,7 @@ It appears someone is maintaining a package on the [AUR](https://aur.archlinux.o
 ## Usage
 `eidolon help` for list of commands:
 ```
-eidolon 
+eidolon
 nicohman <nicohman@demenses.net>
 Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu.
 
@@ -68,4 +68,3 @@ prefix_command: ""
 ## Todo
 
 + Please suggest any features you want as an issue!
-
