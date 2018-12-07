@@ -6,6 +6,8 @@ extern crate serde;
 extern crate serde_json;
 #[macro_use]
 extern crate structopt;
+#[macro_use]
+extern crate human_panic;
 pub mod args;
 use args::*;
 extern crate libeidolon;
@@ -18,6 +20,7 @@ use std::fs::File;
 use std::io::Write;
 use std::fs;
 fn main() {
+    setup_panic!();
     if startup() {
         check_games();
         interpret_args();
