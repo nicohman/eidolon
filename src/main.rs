@@ -20,6 +20,7 @@ use std::fs::File;
 use std::io::Write;
 use std::fs;
 fn main() {
+    #[cfg(not(debug_assertions))]
     setup_panic!();
     if startup() {
         check_games();
