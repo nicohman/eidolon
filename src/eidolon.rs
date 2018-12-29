@@ -332,6 +332,9 @@ pub mod auto {
         let mut already = get_games();
         for x in &dirs {
             println!(">> Reading in steam library {}", &x);
+            let name = x.to_owned();
+            let entries_try = fs::read_dir(name.clone()+"/common");
+            if entries_try.is_ok() {
             let entries = fs::read_dir(x.to_owned() + "/common")
                 .expect("Can't read in games")
                 .into_iter()
@@ -360,6 +363,9 @@ pub mod auto {
                     }
                 }
             }
+        } else {
+            println!("Directory {} does not exist or is not a valid steam library", name);
+        }
         }
         for al in already {
             let typeg = read_game(al.clone()).unwrap().typeg;
