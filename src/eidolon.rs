@@ -31,6 +31,7 @@ pub mod games {
         Lutris,
         Exe,
         Dolphin,
+        WyvernGOG,
     }
     impl fmt::Display for GameType {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -143,6 +144,22 @@ pub mod games {
                         .arg(g.command)
                         .output()
                         .expect("Couldn't run dolphin game");
+                    if !result.status.success() {
+                        return Err(String::from_utf8_lossy(&result.stderr)
+                            .into_owned()
+                            .to_string());
+                    } else {
+                        return Ok(String::from_utf8_lossy(&result.stdout)
+                            .into_owned()
+                            .to_string());
+                    }
+                }
+                WyvernGOG => {
+                    let path = std::path::PathBuf::from(&g.command);
+                    let start = path.join(std::path::PathBuf::from("start.sh"));
+                    let result = Command::new(start.to_str().unwrap())
+                        .output()
+                        .expect("Couldn't run GOG game!");
                     if !result.status.success() {
                         return Err(String::from_utf8_lossy(&result.stderr)
                             .into_owned()
