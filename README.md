@@ -1,4 +1,4 @@
-# eidolon
+# eidolon [![](https://img.shields.io/crates/v/eidolon.svg?style=flat-square)](https://crates.io/crates/eidolon) [![builds.sr.ht status](https://builds.sr.ht/~nicohman/eidolon.svg)](https://builds.sr.ht/~nicohman/eidolon?)
 A conversion of steam\_suite to rust with additional features.
 Provides a single TUI-based registry for drm-free, wine and steam games on linux, accessed through a rofi launch menu. Simple, fast and lightweight. This is a mirror of the [sr.ht repository](https://git.sr.ht/~nicohman/eidolon). Please file issues for eidolon [here](https://todo.sr.ht/~nicohman/eidolon) and patches [here](https://lists.sr.ht/~nicohman/eidolon), though I will still accept issues and pull requests on github.
 
