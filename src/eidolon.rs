@@ -350,39 +350,43 @@ pub mod auto {
         for x in &dirs {
             println!(">> Reading in steam library {}", &x);
             let name = x.to_owned();
-            let entries_try = fs::read_dir(name.clone()+"/common");
+            let entries_try = fs::read_dir(name.clone() + "/common");
             if entries_try.is_ok() {
-            let entries = fs::read_dir(x.to_owned() + "/common")
-                .expect("Can't read in games")
-                .into_iter()
-                .map(|x| proc_path(x.unwrap()));
-            for entry in entries {
-                //Calls search games to get appid and proper name to make the script
-                let results = search_games(entry, x.to_owned());
-                if results.is_some() {
-                    let results = results.unwrap();
-                    let procname = create_procname(results.name.as_str());
-                    let pname = results.name;
-                    let command = String::from("steam 'steam://rungameid/") + &results.appid + "'";
-                    let game = Game {
-                        name: procname.clone(),
-                        pname: pname.clone(),
-                        command: command,
-                        typeg: Steam,
-                    };
-                    add_game(game);
-                    let mut i = 0;
-                    while i < already.len() {
-                        if already[i] == procname {
-                            already.remove(i);
+                let entries = fs::read_dir(x.to_owned() + "/common")
+                    .expect("Can't read in games")
+                    .into_iter()
+                    .map(|x| proc_path(x.unwrap()));
+                for entry in entries {
+                    //Calls search games to get appid and proper name to make the script
+                    let results = search_games(entry, x.to_owned());
+                    if results.is_some() {
+                        let results = results.unwrap();
+                        let procname = create_procname(results.name.as_str());
+                        let pname = results.name;
+                        let command =
+                            String::from("steam 'steam://rungameid/") + &results.appid + "'";
+                        let game = Game {
+                            name: procname.clone(),
+                            pname: pname.clone(),
+                            command: command,
+                            typeg: Steam,
+                        };
+                        add_game(game);
+                        let mut i = 0;
+                        while i < already.len() {
+                            if already[i] == procname {
+                                already.remove(i);
+                            }
+                            i += 1;
                         }
-                        i += 1;
                     }
                 }
+            } else {
+                println!(
+                    "Directory {} does not exist or is not a valid steam library",
+                    name
+                );
             }
-        } else {
-            println!("Directory {} does not exist or is not a valid steam library", name);
-        }
         }
         for al in already {
             let typeg = read_game(al.clone()).unwrap().typeg;
@@ -428,31 +432,35 @@ pub mod auto {
                 let mut contents = String::new();
                 f.read_to_string(&mut contents)
                     .expect("Could not read appmanifest");
-                unsafe {
-                    if contents.find("installdir").is_some() {
-                        //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
-                        let outname = contents.slice_unchecked(
+                if contents.find("installdir").is_some() {
+                    //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
+                    let outname = contents
+                        .get(
                             contents
                                 .find("installdir")
                                 .expect("Couldn't find install dir")
-                                + 14,
-                            contents.find("LastUpdated").unwrap() - 4,
-                        );
-                        if outname == rawname {
-                            let appid = contents.slice_unchecked(
-                                contents.find("appid").unwrap() + 9,
-                                contents.find("Universe").unwrap() - 4,
-                            );
-                            let name = contents.slice_unchecked(
-                                contents.find("name").unwrap() + 8,
-                                contents.find("StateFlags").unwrap() - 4,
-                            );
-                            return Some(SearchResult {
-                                appid: String::from(appid),
-                                name: String::from(name),
-                                outname: String::from(outname),
-                            });
-                        }
+                                + 14
+                                ..contents.find("LastUpdated").unwrap() - 4,
+                        )
+                        .unwrap();
+                    if outname == rawname {
+                        let appid = contents
+                            .get(
+                                contents.find("appid").unwrap() + 9
+                                    ..contents.find("Universe").unwrap() - 4,
+                            )
+                            .unwrap();
+                        let name = contents
+                            .get(
+                                contents.find("name").unwrap() + 8
+                                    ..contents.find("StateFlags").unwrap() - 4,
+                            )
+                            .unwrap();
+                        return Some(SearchResult {
+                            appid: String::from(appid),
+                            name: String::from(name),
+                            outname: String::from(outname),
+                        });
                     }
                 }
             }
