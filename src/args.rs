@@ -10,11 +10,16 @@ pub enum Eidolon {
         #[structopt(short = "w", long = "wine")]
         wine: bool,
         #[structopt(short = "d", long = "dolphin")]
-        dolphin:bool
+        dolphin: bool,
+        #[structopt(short = "g", long = "gog")]
+        gog: bool,
     },
     #[structopt(name = "menu", about = "Show game menu")]
     Menu {},
-    #[structopt(name = "import", about = "Attempts to import in game directory from dir path")]
+    #[structopt(
+        name = "import",
+        about = "Attempts to import in game directory from dir path"
+    )]
     Import {
         path: String,
         #[structopt(short = "m", long = "multi")]
@@ -24,7 +29,9 @@ pub enum Eidolon {
     List {},
     #[structopt(name = "run", about = "Runs a game by name")]
     Run { name: String },
-    #[structopt(name = "update",
-                about = "Updates registry with installed steam, lutris wine, and itch games")]
+    #[structopt(
+        name = "update",
+        about = "Updates registry with installed steam, lutris wine, and itch games"
+    )]
     Update {},
 }

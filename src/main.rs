@@ -1,8 +1,8 @@
 use std::process::Command;
 extern crate butlerd;
 extern crate regex;
-extern crate serde_derive;
 extern crate serde;
+extern crate serde_derive;
 extern crate serde_json;
 #[macro_use]
 extern crate structopt;
@@ -15,10 +15,10 @@ use auto::*;
 use config::*;
 use games::*;
 use libeidolon::*;
-use structopt::StructOpt;
+use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::fs;
+use structopt::StructOpt;
 fn main() {
     #[cfg(not(debug_assertions))]
     setup_panic!();
@@ -45,15 +45,32 @@ fn interpret_args() {
             path,
             wine,
             dolphin,
+            gog,
         } => {
             if !dolphin {
                 add_game_p(name, path, wine);
+            } else if gog {
+                let mut path = std::path::PathBuf::from(path);
+                if !path.is_dir() {
+                    if path.file_name().unwrap().to_str().unwrap() == "start.sh" {
+                        path = path.parent().unwrap().to_path_buf();
+                    } else {
+                        println!("When adding a GOG game, please pass the path of either the game's directory or the start.sh file within.");
+                    }
+                }
+                let ggame = Game {
+                    command: path.to_str().unwrap().to_string(),
+                    pname: name.clone(),
+                    name: helper::create_procname(name),
+                    typeg: GameType::WyvernGOG,
+                };
+                add_game(ggame);
             } else {
                 let dgame = Game {
                     command: path,
                     pname: name.clone(),
                     name: helper::create_procname(name),
-                    typeg: GameType::Dolphin
+                    typeg: GameType::Dolphin,
                 };
                 add_game(dgame);
             }
@@ -63,10 +80,10 @@ fn interpret_args() {
         List {} => list_games(),
         Run { name } => {
             let res = run_game(name);
-            if res.is_err(){
+            if res.is_err() {
                 println!("Game crashed. Stder:\n{}", res.err().unwrap());
             }
-        },
+        }
         Update {} => {
             update_steam(config.steam_dirs);
             update_lutris();
@@ -97,14 +114,17 @@ fn show_menu(menu_command: &str) {
         let parsed_output = String::from_utf8_lossy(&output.stdout);
         if output.status.success() {
             if parsed_output.trim().chars().count() > 0 {
-                let res  = run_game(String::from_utf8_lossy(&output.stdout).trim());
-                if res.is_err(){
+                let res = run_game(String::from_utf8_lossy(&output.stdout).trim());
+                if res.is_err() {
                     let stderr = res.err().unwrap();
-                    if &stderr.clone() != "Nonexistent"{
-                        println!("Game crashed. Stderr: \n{}",stderr);
+                    if &stderr.clone() != "Nonexistent" {
+                        println!("Game crashed. Stderr: \n{}", stderr);
                         notify("Game crashed. Stderr written to /tmp/crash_eidolon.log.");
                         fs::remove_file("/tmp/crash_eidolon.log");
-                        File::create("/tmp/crash_eidolon.log").unwrap().write_all(stderr.as_bytes()).expect("Couldn't write");
+                        File::create("/tmp/crash_eidolon.log")
+                            .unwrap()
+                            .write_all(stderr.as_bytes())
+                            .expect("Couldn't write");
                     } else {
                         notify("Could not find game of that name.");
                     }
@@ -121,6 +141,9 @@ fn show_menu(menu_command: &str) {
         }
     }
 }
-fn notify(notification: &str){
-    Command::new("notify-send").arg(String::from(notification)).output().expect("Couldn't send notification");
+fn notify(notification: &str) {
+    Command::new("notify-send")
+        .arg(String::from(notification))
+        .output()
+        .expect("Couldn't send notification");
 }
