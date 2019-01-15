@@ -18,6 +18,7 @@ use libeidolon::*;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 use structopt::StructOpt;
 fn main() {
     #[cfg(not(debug_assertions))]
@@ -50,7 +51,7 @@ fn interpret_args() {
             if !dolphin {
                 add_game_p(name, path, wine);
             } else if gog {
-                let mut path = std::path::PathBuf::from(path);
+                let mut path = PathBuf::from(path);
                 if !path.is_dir() {
                     if path.file_name().unwrap().to_str().unwrap() == "start.sh" {
                         path = path.parent().unwrap().to_path_buf();
@@ -84,10 +85,29 @@ fn interpret_args() {
                 println!("Game crashed. Stder:\n{}", res.err().unwrap());
             }
         }
-        Update {} => {
+        Update { check_gog } => {
             update_steam(config.steam_dirs);
             update_lutris();
             update_itch();
+            if check_gog {
+                let games = get_games();
+                for game in games {
+                    let mut loaded = read_game(game.as_str()).unwrap();
+                    if loaded.typeg == GameType::Exe {
+                        let path = PathBuf::from(&loaded.command)
+                            .parent()
+                            .unwrap()
+                            .to_path_buf();
+                        if path.join("gameinfo").is_file() && path.join("start.sh").is_file() {
+                            println!("Found possible GOG game {}. Converting", check_gog);
+                            loaded.command = path.to_str().unwrap().to_string();
+                            loaded.typeg = GameType::WyvernGOG;
+                            rm_game(game);
+                            add_game(loaded);
+                        }
+                    }
+                }
+            }
         }
     }
 }

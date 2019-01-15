@@ -33,5 +33,8 @@ pub enum Eidolon {
         name = "update",
         about = "Updates registry with installed steam, lutris wine, and itch games"
     )]
-    Update {},
+    Update {
+        #[structopt(short = "g", long = "check-gog")]
+        check_gog: bool,
+    },
 }
