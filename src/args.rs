@@ -2,7 +2,11 @@
 #[structopt(name = "eidolon")]
 pub enum Eidolon {
     #[structopt(name = "rm", about = "Remove a game from the registry")]
-    Rm { game: String },
+    Rm {
+        game: String,
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
+    },
     #[structopt(name = "add", about = "Adds selected file to registry")]
     Add {
         name: String,
@@ -13,9 +17,14 @@ pub enum Eidolon {
         dolphin: bool,
         #[structopt(short = "g", long = "gog")]
         gog: bool,
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
     },
     #[structopt(name = "menu", about = "Show game menu")]
-    Menu {},
+    Menu {
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
+    },
     #[structopt(
         name = "import",
         about = "Attempts to import in game directory from dir path"
@@ -24,11 +33,20 @@ pub enum Eidolon {
         path: String,
         #[structopt(short = "m", long = "multi")]
         multi: bool,
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
     },
     #[structopt(name = "list", about = "Lists installed games")]
-    List {},
+    List {
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
+    },
     #[structopt(name = "run", about = "Runs a game by name")]
-    Run { name: String },
+    Run {
+        name: String,
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
+    },
     #[structopt(
         name = "update",
         about = "Updates registry with installed steam, lutris wine, and itch games"
@@ -36,5 +54,7 @@ pub enum Eidolon {
     Update {
         #[structopt(short = "g", long = "check-gog")]
         check_gog: bool,
+        #[structopt(flatten)]
+        verbose: clap_verbosity_flag::Verbosity,
     },
 }

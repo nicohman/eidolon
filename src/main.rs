@@ -1,5 +1,6 @@
 use std::process::Command;
 extern crate butlerd;
+extern crate clap_verbosity_flag;
 extern crate regex;
 extern crate serde;
 extern crate serde_derive;
@@ -34,7 +35,14 @@ fn interpret_args() {
     use Eidolon::*;
     let config = get_config();
     match a {
-        Import { path, multi } => {
+        Import {
+            path,
+            multi,
+            verbose,
+        } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
             if multi {
                 imports(path);
             } else {
@@ -47,7 +55,11 @@ fn interpret_args() {
             wine,
             dolphin,
             gog,
+            verbose,
         } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
             if !dolphin {
                 add_game_p(name, path, wine);
             } else if gog {
@@ -76,16 +88,37 @@ fn interpret_args() {
                 add_game(dgame);
             }
         }
-        Rm { game } => rm_game(game),
-        Menu {} => show_menu(&config.menu_command),
-        List {} => list_games(),
-        Run { name } => {
+        Rm { game, verbose } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
+            rm_game(game)
+        }
+        Menu { verbose } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
+            show_menu(&config.menu_command)
+        }
+        List { verbose } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
+            list_games()
+        }
+        Run { name, verbose } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
             let res = run_game(name);
             if res.is_err() {
                 println!("Game crashed. Stder:\n{}", res.err().unwrap());
             }
         }
-        Update { check_gog } => {
+        Update { check_gog, verbose } => {
+            verbose
+                .setup_env_logger("eidolon")
+                .expect("Couldn't set up logger");
             update_steam(config.steam_dirs);
             update_lutris();
             update_itch();
