@@ -23,6 +23,7 @@ It appears someone is maintaining a package on the [AUR](https://aur.archlinux.o
 
 ## Usage
 `eidolon help` for list of commands:
+
 ```
 eidolon
 nicohman <nicohman@demenses.net>
