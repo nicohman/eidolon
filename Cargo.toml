@@ -17,6 +17,8 @@ structopt = "0.2.10"
 butlerd = "0.1.2"
 human-panic = "1.0.1"
 dirs = "1.0.4"
+log = "0.4"
+clap-verbosity-flag = "0.2.0"
 [lib]
 name = "libeidolon"
 path = "src/eidolon.rs"

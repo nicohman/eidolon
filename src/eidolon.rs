@@ -3,6 +3,8 @@ extern crate regex;
 extern crate serde_derive;
 extern crate butlerd;
 extern crate dirs;
+#[macro_use]
+extern crate log;
 use butlerd::Butler;
 use config::*;
 extern crate serde_json;
@@ -43,10 +45,13 @@ pub mod games {
     pub fn check_games() {
         let games = get_games();
         for game in games {
+            info!("Getting game directory metadata");
             let m = fs::metadata(gd() + &game);
             if m.is_ok() {
                 if m.unwrap().is_dir() {
+                    info!("Found an old-style game {}. Attempting to convert.", game);
                     let mut command = String::new();
+                    info!("Opening game start file and reading it in.");
                     fs::File::open(gd() + &game + "/start")
                         .unwrap()
                         .read_to_string(&mut command)
@@ -56,8 +61,10 @@ pub mod games {
                     let mut command = commandl.next().unwrap().to_string();
                     let mut typeg = Exe;
                     if command.contains("steam://rungameid") {
+                        info!("Game is a steam game");
                         typeg = Steam;
                     } else if command.contains("lutris:rungameid") {
+                        info!("Game is a lutris game");
                         typeg = Lutris;
                     }
                     let mut games = Game {
@@ -67,7 +74,8 @@ pub mod games {
                         typeg: typeg,
                     };
                     add_game(games);
-                    println!("Converted {}", game);
+                    info!("Converted {}", game);
+                    info!("Removing old game dir");
                     fs::remove_dir_all(gd() + &game).unwrap();
                 }
             }
@@ -76,7 +84,7 @@ pub mod games {
     /// Adds a given and configured game to registry
     pub fn add_game(game: Game) {
         if fs::metadata(gd() + &game.name + ".json").is_ok() {
-            println!("  Already made a shortcut for {}", game.pname);
+            error!("  Already made a shortcut for {}", game.pname);
         } else {
             let mut ok = true;
             let blocked = get_config().blocked;
@@ -86,6 +94,7 @@ pub mod games {
                 }
             }
             if ok {
+                info!("Creating game file, and writing game info to it");
                 OpenOptions::new()
                     .create(true)
                     .write(true)
@@ -95,12 +104,13 @@ pub mod games {
                     .unwrap();
                 println!("  Made shortcut for {}", game.pname);
             } else {
-                println!("  {} is in your blocked list", game.pname);
+                error!("  {} is in your blocked list", game.pname);
             }
         }
     }
     /// Loads vec of all installed games
     pub fn get_games() -> Vec<String> {
+        info!("Reading in all games");
         fs::read_dir(gd())
             .expect("Can't read in games")
             .collect::<Vec<io::Result<DirEntry>>>()
@@ -131,24 +141,29 @@ pub mod games {
         N: Into<String>,
     {
         let proced = create_procname(name.into());
+        info!("Reading game to run");
         let g = read_game(proced);
         if g.is_ok() {
             let g = g.unwrap();
             match g.typeg {
                 Itch => {
+                    info!("Game is itch game. Attempting to launch through butler");
                     let butler = Butler::new().expect("Has butler been uninstalled?");
                     butler.launch_game(&g.command);
                     return Ok("Launched through butler".to_string());
                 }
                 Dolphin => {
+                    info!("Game is a dolphin game. Launching dolphin with game");
                     let result = Command::new("dolphin-emu-cli")
                         .arg(g.command)
                         .output()
                         .expect("Couldn't run dolphin game");
                     if !result.status.success() {
-                        return Err(String::from_utf8_lossy(&result.stderr)
+                        let err = String::from_utf8_lossy(&result.stderr)
                             .into_owned()
-                            .to_string());
+                            .to_string();
+                        error!("Something went wrong. Error message: {}", err);
+                        return Err(err);
                     } else {
                         return Ok(String::from_utf8_lossy(&result.stdout)
                             .into_owned()
@@ -156,15 +171,18 @@ pub mod games {
                     }
                 }
                 WyvernGOG => {
+                    info!("This is a GOG game added through Wyvern. Launching start.sh under the given path.");
                     let path = std::path::PathBuf::from(&g.command);
                     let start = path.join(std::path::PathBuf::from("start.sh"));
                     let result = Command::new(start.to_str().unwrap())
                         .output()
                         .expect("Couldn't run GOG game!");
                     if !result.status.success() {
-                        return Err(String::from_utf8_lossy(&result.stderr)
+                        let err = String::from_utf8_lossy(&result.stderr)
                             .into_owned()
-                            .to_string());
+                            .to_string();
+                        error!("Something went wrong. Error message: {}", err);
+                        return Err(err);
                     } else {
                         return Ok(String::from_utf8_lossy(&result.stdout)
                             .into_owned()
@@ -172,15 +190,18 @@ pub mod games {
                     }
                 }
                 _ => {
+                    info!("Launching game's command through sh. Nothing special to do.");
                     let result = Command::new("sh")
                         .arg("-c")
                         .arg(g.command)
                         .output()
                         .expect("Couldn't run selected game!");
                     if !result.status.success() {
-                        return Err(String::from_utf8_lossy(&result.stderr)
+                        let err = String::from_utf8_lossy(&result.stderr)
                             .into_owned()
-                            .to_string());
+                            .to_string();
+                        error!("Something went wrong. Error message: {}", err);
+                        return Err(err);
                     } else {
                         return Ok(String::from_utf8_lossy(&result.stdout)
                             .into_owned()
@@ -189,7 +210,7 @@ pub mod games {
                 }
             }
         } else {
-            println!("Couldn't find that game installed. Maybe you misspelled something?");
+            error!("Couldn't find that game installed. Maybe you misspelled something?");
             Err("Nonexistent".to_string())
         }
     }
@@ -198,18 +219,16 @@ pub mod games {
     where
         N: Into<String>,
     {
+        info!("Removing game store file");
         let res = fs::remove_file(String::from(gd() + create_procname(name).as_ref()) + ".json");
         if res.is_ok() {
-            println!("Game removed!");
+            info!("Game removed!");
         } else {
-            println!("Game did not exist. So, removed?");
+            error!("Could not remove game. Error: {}", res.err().unwrap());
         }
     }
     /// Registers executable file as game with given name. Wine argguement indicates whether or not to run this game under wine
-    pub fn add_game_p<N>(name: N, exe: N, wine: bool)
-    where
-        N: Into<String>,
-    {
+    pub fn add_game_p(name: impl Into<String>, exe: impl Into<String>, wine: bool) {
         let (name, exe) = (name.into(), exe.into());
         let mut path = env::current_dir().unwrap();
         path.push(exe.clone());
@@ -217,11 +236,12 @@ pub mod games {
         let name = create_procname(name.as_str());
         let pname = name.clone();
         if fs::metadata(gd() + &name + ".json").is_ok() {
-            println!("A shortcut has already been made for {}", pname);
+            error!("A shortcut has already been made for {}", pname);
         } else {
             println!("Creating shortcut for {:?} with a name of {}", path, name);
             let mut start = String::from("");
             if wine {
+                info!("Wine game. Adding wine info to command.");
                 let mut winestr = String::from("wine ");
                 if exe.to_lowercase().contains(".lnk") {
                     winestr = winestr + "start ";
@@ -252,15 +272,19 @@ pub mod games {
         N: Into<String>,
     {
         let name = name.into();
+        info!("Attempting to read game {}", name);
         if fs::metadata(gd() + &name + ".json").is_ok() {
             let mut stri = String::new();
+            info!("Opening and reading game file");
             fs::File::open(gd() + &name + ".json")
                 .unwrap()
                 .read_to_string(&mut stri)
                 .unwrap();
+            info!("Parsing game file");
             let g: Game = serde_json::from_str(&stri).unwrap();
             return Ok(g);
         }
+        error!("Game does not exist");
         return Err("No such game".to_string());
     }
 }
@@ -277,11 +301,13 @@ pub mod auto {
     }
     /// Fetches lutris wine games and returns a vec of names and lutris ids as tuples
     pub fn get_lutris() -> Result<Vec<(String, String)>, String> {
+        info!("Starting command to fetch lutris games.");
         let games = Command::new("lutris").arg("-l").output();
         if games.is_ok() {
             let games = games.unwrap();
             if games.status.success() {
                 let games_list = String::from_utf8_lossy(&games.stdout);
+                info!("Parsing lutris games list");
                 return Ok(games_list
                     .lines()
                     .filter(|x| x.find("wine").is_some())
@@ -291,9 +317,11 @@ pub mod auto {
                     })
                     .collect::<Vec<(String, String)>>());
             } else {
+                warn!("Lutris not installed. Not scanning for lutris games.");
                 return Err("Lutris not installed".to_string());
             }
         } else {
+            warn!("Lutris not installed. Not scanning for lutris games.");
             return Err("Lutris not installed".to_string());
         }
     }
@@ -301,11 +329,14 @@ pub mod auto {
     /// Searches itch.io games and adds them to game registry
     pub fn update_itch() {
         if fs::metadata(get_home() + "/.config/itch").is_ok() {
+            info!("Itch config folder exists. Trying to start a butler instance.");
             let btest = Butler::new();
             if btest.is_ok() {
+                info!("Started butler correctly.");
                 let mut already = get_games()
                     .iter_mut()
                     .filter(|x| {
+                        info!("Reading game {}", x);
                         let read = read_game(x.to_string()).unwrap();
                         read.typeg == Itch
                     })
@@ -313,8 +344,10 @@ pub mod auto {
                     .collect::<Vec<String>>();
                 println!(">> Reading in itch.io games");
                 let butler = btest.expect("Couldn't start butler daemon");
+                info!("Fetching all butler games.");
                 let caves = butler.fetchall().expect("Couldn't fetch butler caves");
                 for cave in caves {
+                    info!("Processing cave {}", cave.game.title);
                     let game = cave.game;
                     let name = game.title;
                     let procname = create_procname(name.as_str());
@@ -324,6 +357,7 @@ pub mod auto {
                         command: cave.id,
                         typeg: Itch,
                     };
+                    info!("Adding game to eidolon");
                     add_game(g);
                     let mut i = 0;
                     while i < already.len() {
@@ -338,10 +372,13 @@ pub mod auto {
                     rm_game(left);
                 }
             } else {
-                println!("Itch.io client not installed!");
+                warn!(
+                    "Starting butler failed. Error message: {:?}",
+                    btest.err().unwrap()
+                );
             }
         } else {
-            println!("Itch.io client not installed!");
+            warn!("Itch.io client not installed!");
         }
     }
     // /Iterates through steam directories for installed steam games and creates registrations for all
@@ -350,12 +387,9 @@ pub mod auto {
         for x in &dirs {
             println!(">> Reading in steam library {}", &x);
             let name = x.to_owned();
-            let entries_try = fs::read_dir(name.clone() + "/common");
-            if entries_try.is_ok() {
-                let entries = fs::read_dir(x.to_owned() + "/common")
-                    .expect("Can't read in games")
-                    .into_iter()
-                    .map(|x| proc_path(x.unwrap()));
+            info!("Reading in steam library directory");
+            if let Ok(entries) = fs::read_dir(name.clone() + "/common") {
+                let entries = entries.into_iter().map(|x| proc_path(x.unwrap()));
                 for entry in entries {
                     //Calls search games to get appid and proper name to make the script
                     let results = search_games(entry, x.to_owned());
@@ -371,6 +405,7 @@ pub mod auto {
                             command: command,
                             typeg: Steam,
                         };
+                        info!("Adding game to eidolon");
                         add_game(game);
                         let mut i = 0;
                         while i < already.len() {
@@ -382,7 +417,7 @@ pub mod auto {
                     }
                 }
             } else {
-                println!(
+                error!(
                     "Directory {} does not exist or is not a valid steam library",
                     name
                 );
@@ -398,15 +433,17 @@ pub mod auto {
     }
     /// Adds lutris wine games from get_lutris
     pub fn update_lutris() {
+        info!("Getting lutris games to update");
         let lut = get_lutris();
         if lut.is_err() {
-            println!(">> No wine games found in lutris, or lutris not installed");
+            error!(">> No wine games found in lutris, or lutris not installed");
         } else {
             println!(">> Reading in lutris wine games");
             for game in lut.unwrap() {
                 let procname = create_procname(game.1.as_str());
                 let pname = game.1.clone();
                 let command = String::from("lutris lutris:rungameid/") + &game.0;
+                info!("Adding game {} to eidolon", pname);
                 let g = Game {
                     pname: pname,
                     name: procname,
@@ -418,20 +455,24 @@ pub mod auto {
         }
     }
     /// Searches given steam game directory for installed game with a directory name of [rawname]
-    pub fn search_games<N>(rawname: N, steamdir: N) -> Option<SearchResult>
-    where
-        N: Into<String>,
-    {
+    pub fn search_games(
+        rawname: impl Into<String>,
+        steamdir: impl Into<String>,
+    ) -> Option<SearchResult> {
         let (rawname, steamdir) = (rawname.into(), steamdir.into());
+        info!("Reading directory {}", steamdir);
         let entries = fs::read_dir(steamdir).expect("Can't read installed steam games");
         for entry in entries {
             let entry = entry.unwrap().path();
             let new_entry = entry.into_os_string().into_string().unwrap();
             if new_entry.find("appmanifest").is_some() {
+                info!("Opening appmanifest");
                 let mut f = fs::File::open(&new_entry).expect("Couldn't open appmanifest");
                 let mut contents = String::new();
+                info!("Reading appmanifest");
                 f.read_to_string(&mut contents)
                     .expect("Could not read appmanifest");
+                info!("Trying to parse appmanifest");
                 if contents.find("installdir").is_some() {
                     //Slices out the game data from the appmanifest. Will break the instant steam changes appmanifest formats
                     let outname = contents
@@ -475,12 +516,12 @@ pub mod auto {
     {
         let dir = dir.into();
         let entries = fs::read_dir(&dir).expect("Can't read in folder of games");
-        println!("Reading in directory: {}", dir);
+        info!("Reading in directory: {}", dir);
         for entry in entries {
             let entry = proc_path(entry.unwrap());
-            println!("Attempting import on {}", &entry);
+            info!("Attempting import on {}", &entry);
             import(entry.as_str());
-            println!("Finished attempted import on {}", &entry);
+            info!("Finished attempted import on {}", &entry);
         }
     }
     /// Scans a directory for common game formats and adds them.
@@ -489,12 +530,13 @@ pub mod auto {
         N: Into<String>,
     {
         let dir = dir.into();
+        info!("Attempting an import on the dir {}", dir);
         let mut path = env::current_dir().unwrap();
         let entry_format = &dir.split("/").collect::<Vec<&str>>();
         let real_dir: String = String::from(entry_format[entry_format.len() - 1]);
         let procname = create_procname(real_dir);
-        println!("Creating game registry named {}.", procname);
         path.push(dir.clone());
+        info!("Reading game folder");
         let entries = fs::read_dir(&path).expect("Can't read in game folder");
         let mut found_game = String::new();
         for entry in entries {
@@ -514,13 +556,14 @@ pub mod auto {
             }
         }
         if found_game.len() > 0 {
+            info!("Adding game {}", procname);
             add_game_p(
                 procname,
                 path.into_os_string().into_string().unwrap() + "/" + &found_game,
                 false,
             );
         } else {
-            println!(
+            error!(
                 "Could not find recognizable game exe. You will have to manually specify using eidolon add [name] [exe]"
             );
         }
@@ -566,6 +609,7 @@ pub mod config {
     }
     /// Converts pre-v1.2.7 config to JSON config
     pub fn convert_config() {
+        info!("Attempting to convert old config to the new format. Getting old config.");
         let old = get_config_old();
         let conf = Config {
             steam_dirs: old
@@ -577,6 +621,7 @@ pub mod config {
             prefix_command: String::from(old.prefix_command),
             blocked: default_blocked(),
         };
+        info!("Creating and writing to new config file");
         OpenOptions::new()
             .create(true)
             .write(true)
@@ -584,6 +629,7 @@ pub mod config {
             .unwrap()
             .write_all(serde_json::to_string(&conf).unwrap().as_bytes())
             .unwrap();
+        info!("Removing old config file");
         fs::remove_file(get_home() + "/.config/eidolon/config").unwrap();
     }
     /// Loads in eidolon config file
@@ -608,6 +654,7 @@ pub mod config {
     }
     /// This parses the config format that eidolon used prior to v1.2.7. This is used to convert the old format into the new JSON-based format when it is detected.
     pub fn get_config_old() -> OldConfig {
+        info!("Getting the old config file");
         let mut conf = String::new();
         fs::File::open(get_home() + "/.config/eidolon/config")
             .expect("Couldn't read config")
@@ -638,13 +685,17 @@ pub mod config {
     }
     /// Intializes basic directories and config for the first use
     pub fn init() {
-        println!("Beginning config init");
+        info!("Beginning config init");
         if fs::metadata(get_home() + "/.config").is_err() {
+            info!("Creating ~/.config");
             fs::create_dir(get_home() + "/.config").expect("Couldn't create config directory");
         }
+        info!("Creating ~/.config/eidolon");
         fs::create_dir(get_home() + "/.config/eidolon").expect("Couldn't create eidolon directory");
+        info!("Creating ~/.config/eidolon/games");
         fs::create_dir(get_home() + "/.config/eidolon/games")
             .expect("Couldn't create games directory");
+        info!("Creating ~/.config/eidolon/config.json and writing the default config to it");
         let mut file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -656,13 +707,15 @@ pub mod config {
                 .as_bytes(),
         )
         .unwrap();
-        println!("Correctly initialized base config.");
+        info!("Correctly initialized base config.");
     }
     /// Checks if eidolon has been inited. If it hasn't, tries to init and returns false if that fails.
     pub fn startup() -> bool {
         if check_inited() {
+            info!("Eidolon has been initialized");
             true
         } else {
+            warn!("Eidolon has not been initialized. Initializing.");
             init();
             check_inited()
         }
@@ -690,7 +743,6 @@ pub mod config {
 /// A set of helper functions commonly used by eidolon
 pub mod helper {
     use regex::Regex;
-    use std::env;
     use std::fs::DirEntry;
     /// Formats game name into nice-looking underscored name for continuity with other names
     pub fn create_procname<N>(rawname: N) -> String
