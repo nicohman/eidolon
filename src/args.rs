@@ -1,12 +1,15 @@
 #[derive(StructOpt, Debug)]
 #[structopt(name = "eidolon")]
-pub enum Eidolon {
+pub struct Eidolon {
+    #[structopt(flatten)]
+    pub verbose: clap_verbosity_flag::Verbosity,
+    #[structopt(subcommand)]
+    pub command: Command,
+}
+#[derive(StructOpt, Debug)]
+pub enum Command {
     #[structopt(name = "rm", about = "Remove a game from the registry")]
-    Rm {
-        game: String,
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
-    },
+    Rm { game: String },
     #[structopt(name = "add", about = "Adds selected file to registry")]
     Add {
         name: String,
@@ -17,14 +20,9 @@ pub enum Eidolon {
         dolphin: bool,
         #[structopt(short = "g", long = "gog")]
         gog: bool,
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
     },
     #[structopt(name = "menu", about = "Show game menu")]
-    Menu {
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
-    },
+    Menu,
     #[structopt(
         name = "import",
         about = "Attempts to import in game directory from dir path"
@@ -33,20 +31,11 @@ pub enum Eidolon {
         path: String,
         #[structopt(short = "m", long = "multi")]
         multi: bool,
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
     },
     #[structopt(name = "list", about = "Lists installed games")]
-    List {
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
-    },
+    List,
     #[structopt(name = "run", about = "Runs a game by name")]
-    Run {
-        name: String,
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
-    },
+    Run { name: String },
     #[structopt(
         name = "update",
         about = "Updates registry with installed steam, lutris wine, and itch games"
@@ -54,7 +43,5 @@ pub enum Eidolon {
     Update {
         #[structopt(short = "g", long = "check-gog")]
         check_gog: bool,
-        #[structopt(flatten)]
-        verbose: clap_verbosity_flag::Verbosity,
     },
 }
