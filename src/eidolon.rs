@@ -581,6 +581,7 @@ pub mod config {
         pub prefix_command: String,
         #[serde(default = "default_blocked")]
         pub blocked: Vec<String>,
+        #[serde(default)]
         pub autoscan: bool,
     }
     impl Config {
