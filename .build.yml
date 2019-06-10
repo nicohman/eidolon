@@ -18,4 +18,4 @@ tasks:
   - deploy: |
       cd eidolon/target/release
       sshopts="ssh -o StrictHostKeyChecking=no"
-      rsync --rsh="$sshopts" -rP eidolon $deploy:/home/nicohman/ravenserver/public/static/eidolon-nightly
+      rsync --rsh="$sshopts" -rP eidolon $deploy:/home/nicohman/ravenserver-rs/public/static/eidolon-nightly
