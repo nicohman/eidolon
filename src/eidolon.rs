@@ -574,13 +574,14 @@ pub mod config {
     use crate::{helper::*, *};
     use regex::Regex;
     /// Eidolon's user config
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct Config {
         pub steam_dirs: Vec<String>,
         pub menu_command: String,
         pub prefix_command: String,
         #[serde(default = "default_blocked")]
         pub blocked: Vec<String>,
+        pub autoscan: bool,
     }
     impl Config {
         /// Default config
@@ -591,6 +592,7 @@ pub mod config {
                     .to_string(),
                 prefix_command: "".to_string(),
                 blocked: default_blocked(),
+                autoscan: false
             }
         }
     }
@@ -620,6 +622,7 @@ pub mod config {
             menu_command: String::from(old.menu_command),
             prefix_command: String::from(old.prefix_command),
             blocked: default_blocked(),
+            autoscan: false
         };
         info!("Creating and writing to new config file");
         OpenOptions::new()

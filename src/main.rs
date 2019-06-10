@@ -91,26 +91,32 @@ fn interpret_args() {
             }
         }
         Update { check_gog } => {
-            update_steam(config.steam_dirs);
-            update_lutris();
-            update_itch();
-            if check_gog {
-                let games = get_games();
-                for game in games {
-                    let mut loaded = read_game(game.as_str()).unwrap();
-                    if loaded.typeg == GameType::Exe {
-                        let path = PathBuf::from(&loaded.command)
-                            .parent()
-                            .unwrap()
-                            .to_path_buf();
-                        if path.join("gameinfo").is_file() && path.join("start.sh").is_file() {
-                            println!("Found possible GOG game {}. Converting", check_gog);
-                            loaded.command = path.to_str().unwrap().to_string();
-                            loaded.typeg = GameType::WyvernGOG;
-                            rm_game(game);
-                            add_game(loaded);
-                        }
-                    }
+            update_all(check_gog, config.clone());
+        }
+    }
+    if config.autoscan {
+        update_all(false, config);
+    }
+}
+fn update_all(check_gog: bool, config: Config) {
+    update_steam(config.steam_dirs);
+    update_lutris();
+    update_itch();
+    if check_gog {
+        let games = get_games();
+        for game in games {
+            let mut loaded = read_game(game.as_str()).unwrap();
+            if loaded.typeg == GameType::Exe {
+                let path = PathBuf::from(&loaded.command)
+                    .parent()
+                    .unwrap()
+                    .to_path_buf();
+                if path.join("gameinfo").is_file() && path.join("start.sh").is_file() {
+                    println!("Found possible GOG game {}. Converting", check_gog);
+                    loaded.command = path.to_str().unwrap().to_string();
+                    loaded.typeg = GameType::WyvernGOG;
+                    rm_game(game);
+                    add_game(loaded);
                 }
             }
         }
