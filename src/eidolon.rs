@@ -99,7 +99,7 @@ pub mod games {
                     .create(true)
                     .write(true)
                     .open(gd() + &game.name + ".json")
-                    .unwrap()
+                    .expect(&format!("Can't open {}{}.json for writing", gd(), &game.name))
                     .write_all(serde_json::to_string(&game).unwrap().as_bytes())
                     .unwrap();
                 println!("  Made shortcut for {}", game.pname);
@@ -756,7 +756,7 @@ pub mod helper {
         let mut basename = String::from(rawname.into()).to_lowercase();
         basename = String::from(basename.trim());
         let reg_white = Regex::new(r"-|\s").unwrap();
-        let reg_special = Regex::new(r"'|™|:").unwrap();
+        let reg_special = Regex::new(r"'|™|:|/").unwrap();
         let white_formatted = reg_white.replace_all(&basename, "_");
         let total_formatted = reg_special.replace_all(&white_formatted, "");
         return String::from(total_formatted);
